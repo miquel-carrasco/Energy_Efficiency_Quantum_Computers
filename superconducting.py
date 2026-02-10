@@ -17,7 +17,8 @@ params = {'axes.labelsize': 14,
          'ytick.labelsize': 11,
          "text.usetex": True,
          "font.family": "serif",
-         "font.serif": ["Palatino"]
+         "font.serif": ["Palatino"],
+         "figure.autolayout": True
          }
 plt.rcParams.update(params)
 
@@ -77,7 +78,7 @@ def plot_EE_vs_D(computer: Computer):
         ax1.plot(D_values, EE_list, color = colors[i])
         ax1.text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N_samples}$", rotation = -6, fontsize=10)
 
-    ax1.set_xlabel(r"Total Circuit Depth, $D$")
+    ax1.set_xlabel(r"Final Circuit Depth, $D$")
     ax1.set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
     ax1.set_xlim(0, max(D_values))
     ax1.set_yscale('log')
@@ -180,7 +181,7 @@ def plot_D_D0(computer: Computer):
     plt.close()
 
 
-def initialization_time(computer):
+def reset_time(computer):
     D_values = np.arange(0, 10100, 50)
     N_samples = 100
 
@@ -209,25 +210,125 @@ def initialization_time(computer):
     fig, ax = plt.subplots()
 
     # ax.vlines(10*t_init_passive/(computer.T_clock), 0, 0.006, colors='k', linestyles='dashed')
-    ax.text(6000, 0.0017, r'$D>> t_{\rm{init}}^{\rm{act}} / t_{\rm{clock}}$', fontsize=12, rotation=-7, zorder = -1)
+    ax.text(6000, 0.0017, r'$D>> t_{\rm{reset}}^{\rm{act}} / t_{\rm{clock}}$', fontsize=12, rotation=-7, zorder = -1)
 
-    ax.plot(D_values, EE_active, color='limegreen', label = r'$t_{\rm{init}}^{\rm{act}}=5 \;\mu s$', zorder = 1)
-    ax.plot(D_values, EE_passive, color='navy', label = r'$t_{\rm{init}}^{\rm{pass}}=200 \;\mu s$', zorder = 3)
-    ax.plot(D_values, EE_zero, color='k', linestyle=':', alpha = 0.8, label = r'$t_{\rm{init}}=0$', zorder = 2)
+    ax.plot(D_values, EE_active, color='limegreen', label = r'$t_{\rm{reset}}^{\rm{act}}=5 \;\mu s$', zorder = 1)
+    ax.plot(D_values, EE_passive, color='navy', label = r'$t_{\rm{reset}}^{\rm{pass}}=200 \;\mu s$', zorder = 3)
+    ax.plot(D_values, EE_zero, color='k', linestyle=':', alpha = 0.8, label = r'$t_{\rm{reset}}=0$', zorder = 2)
 
     ax.legend(fontsize=12, fancybox = False, edgecolor='black', loc = "upper center")
 
     ax.set_ylim(0.0004, 0.7)
     ax.set_xlim(0, 10100)
     ax.set_yscale('log')
-    ax.set_xlabel(r"Total Circuit Depth, $D$")
+    ax.set_xlabel(r"Final Circuit Depth, $D$")
     ax.set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
-    plt.savefig("Figures/Superconducting/superconducting_initialization_time.pdf", bbox_inches='tight')
+    plt.savefig("Figures/Superconducting/superconducting_reset_time.pdf", bbox_inches='tight')
     plt.close()
 
+def plot_D_and_Nsamples(computer: Computer):
+
+    fig, axs = plt.subplots(1, 2, figsize=(10,4), sharey=True)
+
+    #FIG A)
+    N_samples_values = [1, 10, 100, 1000, 10000]
+
+    D_values = np.arange(0, 10010, 10)
+    D_print = [1, 10, 100, 1000, 10000]
+
+    colors = colormaps['Reds'](np.linspace(0.3, 0.8, len(N_samples_values)))
+
+    for i, N_samples in enumerate(N_samples_values):
+        EE_list = []
+        N_pi_list = []
+        for D0 in D_values:
+            alg = Algorithm(D=D0, eta=0)
+            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
+            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            if N_samples == 100 and D0 in D_print:
+                print(f"N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+        axs[0].plot(D_values, EE_list, color = colors[i])
+        axs[0].text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N_samples}$", rotation = -6.5, fontsize=10)
+
+    axs[0].set_xlabel(r"Final Circuit Depth, $D$")
+    axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    axs[0].set_xlim(0, max(D_values))
+    axs[0].set_yscale('log')
+    axs[0].set_ylim(3.5e-6, 2.5e1)
+
+    axs[0].text(1000, 6e0, "(a)", fontsize = 14)
+
+    ax2 = axs[0].twinx()
+    ax2.plot(D_values, N_pi_list, alpha=0)
+    ax2.set_yscale('log')
+    ax2.set_ylim(3.5e-6*computer.P*T, 2.5e1*computer.P*T)
+    ax2.set_yticklabels([])
+
+    #QFT
+    alg = Algorithm(D=1584, eta = 0.3434)
+    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
+    EE_qft = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=100)
+    axs[0].scatter(circ.D, EE_qft, marker='d', color = 'saddlebrown', edgecolors = 'k',linewidth =1, zorder = 10)
+
+
+    #Adder
+    alg = Algorithm(D=1962, eta = 0.3507)
+    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
+    EE_qft = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=100)
+    axs[0].scatter(circ.D, EE_qft, marker='d', color = 'darkorchid', edgecolors = 'k',linewidth =1, zorder = 10)
+
+    #FIG B)
+    N_samples_values = np.arange(0, 10010, 10)
+    D_values = [10, 100, 1000, 10000]
+
+    colors = colormaps['Purples'](np.linspace(0.3, 0.8, len(D_values)))
+
+    for i, D0 in enumerate(D_values):
+        EE_list = []
+        N_pi_list = []
+        for N_samples in N_samples_values:
+            alg = Algorithm(D=D0, eta=0)
+            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
+            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            if N_samples == 2500 and D0 in D_values:
+                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+        axs[1].plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
+  
+    # axs[1].text(1750, 3e-2, r"$D=10$", fontsize=10, rotation=-6)
+    # axs[1].text(2200, 7e-3, r"$D=100$", fontsize=10, rotation=-6)
+    axs[1].annotate(r"$D=10$", xy=(2300, 3.3e-3), xytext=(1800, 3e-2), arrowprops=dict(arrowstyle="->"), fontsize=10, rotation=-6)
+    axs[1].annotate(r"$D=100$", xy=(3000, 1.4e-3), xytext=(2400, 7e-3), arrowprops=dict(arrowstyle="->"), fontsize=10, rotation=-6)
+    axs[1].text(2000, 4.5e-4, r"$D=1000$", fontsize=10, rotation=-6)
+    axs[1].text(2000, 5e-5, r"$D=10000$", fontsize=10, rotation=-6)
+
+    axs[1].set_xlabel(r"Number of samples, $N_{\mathrm{samples}}$")
+    # axs[1].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    axs[1].set_xlim(0, 5010)
+    axs[1].set_yscale('log')
+    # axs[1].set_ylim(2.5e-5, 2.7e-2)
+
+    axs[1].text(500, 6e0, "(b)", fontsize = 14)
+
+
+    ax2 = axs[1].twinx()
+    ax2.plot(N_samples_values, N_pi_list, alpha=0)
+    ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
+    ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
+    ax2.set_yscale('log')
+    ax2.set_ylim(3.5e-6*computer.P*T, 2.5e1*computer.P*T)
+
+    # axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
+
+    plt.subplots_adjust(wspace=0.1)
+
+    plt.savefig("Figures/Superconducting/superconducting_D_and_Nsamples.pdf", bbox_inches='tight')
+    plt.close()
+
+
 if __name__ == "__main__":
-    plot_EE_vs_D(computer)
-    plot_D_D0(computer)
-    initialization_time(computer)
-    plot_power_breakdown(computer)
+    # plot_EE_vs_D(computer)
+    # plot_D_D0(computer)
+    # reset_time(computer)
+    # plot_power_breakdown(computer)
     # print(computer.P, computer.P*3600*24/1000000)
+    plot_D_and_Nsamples(computer)

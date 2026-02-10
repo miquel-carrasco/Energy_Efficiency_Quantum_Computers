@@ -11,7 +11,7 @@ params = {'axes.labelsize': 14,
          'lines.markeredgecolor': "black",
      	'lines.linewidth': 1.5,
          'xtick.labelsize': 10,
-         'ytick.labelsize': 11,
+         'ytick.labelsize': 10,
          "text.usetex": True,
          "font.family": "serif",
          "font.serif": ["Palatino"]
@@ -89,8 +89,9 @@ rects_ghz = ax.bar(x + width, ghz_ratios, width, label='GHZ', color=colors[2])
 
 ax.set_xticks(x)
 basis_gates = [[s.upper() for s in basis] for basis in basis_gates]
-ax.set_xticklabels([', '.join(bg) for bg in basis_gates], rotation=45, ha='right')
+ax.set_xticklabels(['['+', '.join(bg)+']' for bg in basis_gates], ha='center')
 ax.set_ylabel('Depth Overhead Ratio')
+ax.set_xlabel('Basis Gate Set', labelpad = 10)
 # ax.set_title(f'Depth Overhead Ratios for Different Basis Gate Sets ({num_qubits} Qubits)')
 ax.axhline(1, color='k', linestyle='--', label='Lower Bound Depth')
 ax.legend()
@@ -101,7 +102,7 @@ for rect in list(rects_qft) + list(rects_adder) + list(rects_ghz):
     ax.annotate(f'{h:.2f}',
                 xy=(rect.get_x() + rect.get_width() / 2, h),
                 xytext=(0, 3), textcoords="offset points",
-                ha='center', va='bottom', fontsize=8)
+                ha='center', va='bottom', fontsize=10)
 
 # adjust y-limits a bit to make annotations visible
 all_ratios = qft_ratios + adder_ratios + ghz_ratios

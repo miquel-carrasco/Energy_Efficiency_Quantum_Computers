@@ -8,11 +8,11 @@ from matplotlib.colors import LogNorm
 from matplotlib import colormaps
 import math
 
-params = {'axes.labelsize': 14,
+params = {'axes.labelsize': 14, 
          'axes.titlesize': 15,
          'axes.linewidth': 1.5,
          'lines.markeredgecolor': "black",
-     	'lines.linewidth': 1.5,
+     	 'lines.linewidth': 1.5,
          'xtick.labelsize': 11,
          'ytick.labelsize': 11,
          "text.usetex": True,
@@ -22,43 +22,46 @@ params = {'axes.labelsize': 14,
          }
 plt.rcParams.update(params)
 
-Nq = 400
+Nq = 100
 
-small_chiller, N_pt = Component('Small Chiller', 600, 'Cooling/Vacuum'), 4
-dilution_unit, N_du = Component('Large Chiller', 1000, 'Cooling/Vacuum'), 4
-hvac, N_hvac = Component('HVAC', 5000, 'Cooling/Vacuum'), 1
-vacuum_chamber, N_vacuum = Component('Vacuum Chamber', 100, 'Cooling/Vacuum'), 1
 
-trap_laser, N_trap_laser = Component('Trap Laser', 1500, 'Qubit Control'), 1
-amp_rydberg_1013, N_amp_rydberg_1013 = Component('Rydberg 1013nm Amplifier', 1000, 'Qubit Control'), 1
-pump_rydberg_420, N_pump_rydberg_420 = Component('Rydberg 420nm Pump Laser', 900, 'Qubit Control'), 1
-extra_lasers, N_extra_lasers = Component('Extra Lasers', 2550, 'Qubit Control'), 1
-camera, N_camera = Component('Camera', 155, 'Qubit Control'), 1
-other_electronics, N_other_electronics = Component('Other Electronics', 2000, 'Qubit Control'), 1
+compressor , N_compressor = Component('Compressor', 7500, 'Cooling/Vacuum'), 1
+chiller, N_chill = Component('Chiller', 2000, 'Cooling/Vacuum'), 1
+emccd, N_emccd = Component('EMCCD', 96, 'Qubit Control'), 1
+nanopositioner, N_nanopositioner = Component('Nanopositioner Controller', 10, 'Qubit Control'), 1
+magnet, N_magnet = Component('Superconducting Magnet', 180, 'Qubit Control'), 1
+rf_amp, N_rrf_amp = Component('RF Amplifier',72, 'Qubit Control'), 1
+laser_system, N_laser_system = Component('Laser System', 825.7, 'Qubit Control'), 1
+microwave_drive, N_mw_drive = Component('Microwave Drive', 669, 'Qubit Control'), 1
+artiq_control, N_artiq = Component('ARTIQ Control System', 130, 'Qubit Control'), 1
+server, N_server = Component('Server', 100, 'Classical Processing'), 1
+control_desktop, N_control_desktop = Component('Control Desktop', 50, 'Classical Processing'), 1
+HVAC, N_HVAC = Component('HVAC', 2000, 'Cooling/Vacuum'), 1
+# Server, N_server = Component('Server', 130, 'Classical Processing'), 1
+# classical_comp, N_classical_comp = Component('Classical Computer', 180, 'Classical Processing'), 1
 
-classical_comp, N_classical_comp = Component('Classical Computers', 250, 'Classical Processing'), 8
-
-components = [small_chiller, dilution_unit, hvac, vacuum_chamber, trap_laser, amp_rydberg_1013, 
-              pump_rydberg_420, extra_lasers, camera, other_electronics, classical_comp]
-Ni = [N_pt, N_du, N_hvac, N_vacuum, N_trap_laser, N_amp_rydberg_1013, N_pump_rydberg_420, 
-      N_extra_lasers, N_camera, N_other_electronics, N_classical_comp]
+components = [compressor, chiller, emccd, nanopositioner, magnet, rf_amp, laser_system, microwave_drive, artiq_control, server, control_desktop, HVAC]
+Ni = [N_compressor, N_chill, N_emccd, N_nanopositioner, N_magnet, N_rrf_amp, N_laser_system, N_mw_drive, N_artiq, N_server, N_control_desktop, N_HVAC]
+Ni = [int(x) for x in Ni]
 P_per_component = [comp.P*Ni[i] for i, comp in enumerate(components)]
 
 T = 24*3600
 
-t_init = 4e-3
-t_2q= 0.6e-3
-t_meas = 10e-3
+
+t_init = 100e-3 #Doppler cooling
+t_2q = 10e-6 
+t_shuttle = 100e-6
+t_meas = 0.5e-3
 
 computer = Computer(Nq = 100,
                     components = components,
                     N_comp = Ni,
-                    graph_type="2D",
+                    graph_type="All-to-all",
                     t_init = t_init,
                     t_meas = t_meas,
-                    T_gates=[t_2q])
+                    T_gates=[t_2q, t_shuttle])
 
-
+print(computer.P, computer.P*3600*24/1000000)
 
 def plot_EE_vs_D(computer: Computer):
 
@@ -78,15 +81,15 @@ def plot_EE_vs_D(computer: Computer):
             EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
             N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
             if N_samples == 100 and D0 in D_print:
-                print(f"N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         ax1.plot(D_values, EE_list, color = colors[i])
-        ax1.text(4000, EE_list[-1]*2.4, rf"$N_{{samples}}={N_samples}$", rotation = -7, fontsize=10)
+        ax1.text(4000, EE_list[-1]*2.4, rf"$N_{{samples}}={N_samples}$", rotation = -6, fontsize=10)
 
     ax1.set_xlabel(r"Final Circuit Depth, $D$")
     ax1.set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
     ax1.set_xlim(0, max(D_values))
     ax1.set_yscale('log')
-    # ax1.set_ylim(4e-8, 1.7e-2)
+    ax1.set_ylim(2.5e-3, 2.5e-3)
 
 
 
@@ -95,10 +98,11 @@ def plot_EE_vs_D(computer: Computer):
     ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
     ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
     ax2.set_yscale('log')
-    # ax2.set_ylim(4e-8*computer.P*T, 1.7e-2*computer.P*T)
+    # ax2.set_ylim(2.5e-3*computer.P*T, 1.7e1*computer.P*T)
 
-    plt.savefig("Figures/Neutral_atoms/neutral_atoms_EE_vs_D.pdf", bbox_inches='tight')
+    plt.savefig("Figures/Trapped_ions/trapped_ions_EE_vs_D.pdf", bbox_inches='tight')
     plt.close()
+
 
 def plot_EE_vs_Nsamples(computer: Computer):
 
@@ -135,87 +139,7 @@ def plot_EE_vs_Nsamples(computer: Computer):
 
     ax1.legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
 
-    plt.savefig("Figures/Neutral_atoms/neutral_atoms_EE_vs_Nsamples.pdf", bbox_inches='tight')
-    plt.close()
-
-def plot_D_and_Nsamples(computer: Computer):
-
-    fig, axs = plt.subplots(1, 2, figsize=(10,4), sharey=True)
-
-    #FIG A)
-    N_samples_values = [1, 10, 100, 1000, 10000]
-
-    D_values = np.arange(0, 10010, 10)
-    D_print = [100, 1000, 10000]
-
-    colors = colormaps['Reds'](np.linspace(0.3, 0.8, len(N_samples_values)))
-
-    for i, N_samples in enumerate(N_samples_values):
-        EE_list = []
-        N_pi_list = []
-        for D0 in D_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
-            if N_samples == 1 and D0 in D_print:
-                print(f"N_sampl={N_samples}, D={D0}, computing time={computer.t_comp(alg, N_samples)}")
-        axs[0].plot(D_values, EE_list, color = colors[i])
-        axs[0].text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N_samples}$", rotation = -8, fontsize=10)
-
-    axs[0].set_xlabel(r"Final Circuit Depth, $D$")
-    axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
-    axs[0].set_xlim(0, max(D_values))
-    axs[0].set_yscale('log')
-    axs[0].set_ylim(4e-10, 6e-3)
-
-    axs[0].text(1000, 1.5e-3, "(a)", fontsize = 14)
-
-    ax2 = axs[0].twinx()
-    ax2.plot(D_values, N_pi_list, alpha=0)
-    ax2.set_yscale('log')
-    ax2.set_ylim(4e-10*computer.P*T, 6e-3*computer.P*T)
-    ax2.set_yticklabels([])
-
-
-    #FIG B)
-    N_samples_values = np.arange(0, 10010, 10)
-    D_values = [10, 100, 1000, 10000]
-
-    colors = colormaps['Purples'](np.linspace(0.3, 0.8, len(D_values)))
-
-    for i, D0 in enumerate(D_values):
-        EE_list = []
-        N_pi_list = []
-        for N_samples in N_samples_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
-            # if N_samples == 2500 and D0 in D_values:
-                # print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
-        axs[1].plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
-        axs[1].text(2100, EE_list[-1]*5, rf"$D={D0}$", rotation = -6, fontsize=10)
-
-    axs[1].set_xlabel(r"Number of samples, $N_{\mathrm{samples}}$")
-    # axs[1].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
-    axs[1].set_xlim(0, 5010)
-    axs[1].set_yscale('log')
-    # axs[1].set_ylim(2.5e-5, 2.7e-2)
-
-    axs[1].text(500, 1.5e-3, "(b)", fontsize = 14)
-
-
-    ax2 = axs[1].twinx()
-    ax2.plot(N_samples_values, N_pi_list, alpha=0)
-    ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
-    ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
-    ax2.set_yscale('log')
-    ax2.set_ylim(4e-10*computer.P*T, 6e-3*computer.P*T)
-
-    # axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
-
-    plt.subplots_adjust(wspace=0.1)
-
-    plt.savefig("Figures/Neutral_atoms/neutral_atoms_D_and_Nsamples.pdf", bbox_inches='tight')
+    plt.savefig("Figures/Trapped_ions/trapped_ions_EE_vs_Nsamples.pdf", bbox_inches='tight')
     plt.close()
 
 def plot_power_breakdown(computer: Computer):
@@ -258,11 +182,91 @@ def plot_power_breakdown(computer: Computer):
     ax2.set_ylim(0, max(power_types.values())/computer.P*100*1.2)
     ax2.set_ylabel(r"Relative consumption (\%)")
 
-    plt.savefig("Figures/Neutral_atoms/neutral_atoms_power_breakdown.pdf")
+    plt.savefig("Figures/Trapped_ions/trapped_ions_power_breakdown.pdf")
     plt.close()
+
+def plot_D_and_Nsamples(computer: Computer):
+
+    fig, axs = plt.subplots(1, 2, figsize=(10,4), sharey=True)
+
+    #FIG A)
+    N_samples_values = [1, 10, 100, 1000, 10000]
+
+    D_values = np.arange(0, 10010, 10)
+    D_print = [1, 10, 100, 1000, 10000]
+
+    colors = colormaps['Reds'](np.linspace(0.3, 0.8, len(N_samples_values)))
+
+    for i, N_samples in enumerate(N_samples_values):
+        EE_list = []
+        N_pi_list = []
+        for D0 in D_values:
+            alg = Algorithm(D=D0, eta=0)
+            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
+            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            if N_samples == 100 and D0 in D_print:
+                print(f"N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+        axs[0].plot(D_values, EE_list, color = colors[i])
+        axs[0].text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N_samples}$", rotation = -6, fontsize=10)
+
+    axs[0].set_xlabel(r"Final Circuit Depth, $D$")
+    axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    axs[0].set_xlim(0, max(D_values))
+    axs[0].set_yscale('log')
+    axs[0].set_ylim(5e-9, 2.5e-3)
+
+    axs[0].text(1000, 1e-3, "(a)", fontsize = 14)
+
+    ax2 = axs[0].twinx()
+    ax2.plot(D_values, N_pi_list, alpha=0)
+    ax2.set_yscale('log')
+    ax2.set_ylim(5e-9*computer.P*T, 2.5e-3*computer.P*T)
+    ax2.set_yticklabels([])
+
+
+    #FIG B)
+    N_samples_values = np.arange(0, 10010, 10)
+    D_values = [10, 100, 1000, 10000]
+
+    colors = colormaps['Purples'](np.linspace(0.3, 0.8, len(D_values)))
+
+    for i, D0 in enumerate(D_values):
+        EE_list = []
+        N_pi_list = []
+        for N_samples in N_samples_values:
+            alg = Algorithm(D=D0, eta=0)
+            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
+            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            if N_samples == 2500 and D0 in D_values:
+                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+        axs[1].plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
+
+    axs[1].set_xlabel(r"Number of samples, $N_{\mathrm{samples}}$")
+    # axs[1].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    axs[1].set_xlim(0, 5010)
+    axs[1].set_yscale('log')
+    # axs[1].set_ylim(5e-9, 2.7e-2)
+
+    axs[1].text(500, 1e-3, "(b)", fontsize = 14)
+
+
+    ax2 = axs[1].twinx()
+    ax2.plot(N_samples_values, N_pi_list, alpha=0)
+    ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
+    ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
+    ax2.set_yscale('log')
+    ax2.set_ylim(5e-9*computer.P*T, 2.5e-3*computer.P*T)
+
+    axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
+
+    plt.subplots_adjust(wspace=0.1)
+
+    plt.savefig("Figures/Trapped_ions/trapped_ions_D_and_Nsamples.pdf", bbox_inches='tight')
+    plt.close()
+
 
 
 if __name__ == "__main__":
     plot_D_and_Nsamples(computer)
-    # plot_power_breakdown(computer)
-    # print(computer.P, computer.P*24*3600/10**6)
+    print(computer.P, computer.P*3600*24/1000000)
+    plot_power_breakdown(computer)

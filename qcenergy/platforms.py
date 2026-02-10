@@ -174,5 +174,19 @@ class Computer:
             float: energy efficiency.
         """
 
+        return self.N(T, algorithm, N_sampl) / (T*self.P)
+    
+
+    def t_comp(self, algorithm: Algorithm, N_sampl: float) -> float:
+        """
+        Return the computation time for a given algorithm.
+
+        Args:
+            algorithm (Algorithm): algorithm to be executed.
+            N_sampl (float): number of samples.
+        
+        Returns:
+            float: computation time.
+        """
         circuit = Circuit(algorithm=algorithm, avg_diameter=self.avg_diameter)
-        return self.N(T, circuit, N_sampl) / (T*self.P)
+        return (self.t_init + circuit.D*self.t_clock + self.t_meas)*N_sampl
