@@ -211,3 +211,59 @@ class SolidStateComputer(Computer):
         """
 
         return 1 / (self.t_comp(D0, eta, N_samples) * self.P)
+
+
+
+class TrappedIonsComputer(Computer):
+    """
+    A trapped ions computer.
+    """
+    def __init__(self,
+                 Nq: int = 100,
+                 components: list[Component] = [],
+                 N_comp: list[int] = [], 
+                 t_init: float = 0.0, 
+                 t_meas: float = 0.0, 
+                 t_clock: float = 0.0,
+                 t_transport: float = 0.0,
+                 N_gatezones: int = 1,
+                 independent_gates: bool = False
+                 ):
+    
+        super().__init__(Nq=Nq, components=components, N_comp=N_comp)
+        self.t_init = t_init
+        self.t_meas = t_meas
+        self.t_clock = t_clock
+        self.t_transport = t_transport
+        self.N_gatezones = N_gatezones
+        self.independent_gates = independent_gates
+
+        self.list_components = self.assemble()
+
+    
+    def no_indep_depth(self, D0: int, alpha: float) -> int:
+
+        return D0 + math.ceil(D0*alpha) 
+
+
+    def final_circuit_depth(self, D0: int, alpha: float, N_gates: int) -> int:
+
+        if not self.independent_gates:
+            D_prima = self.no_indep_depth(D0, alpha)
+        else:
+            D_prima = D0
+        
+        return N_gates / min(N_gates/D_prima, self.N_gatezones)
+    
+    def t_comp(self, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
+
+        return (self.t_init + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples
+    
+    def N_pi(self, t: float, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
+        
+        return t / self.t_comp(D0, alpha, beta, N_gates, N_samples)
+
+    def energy_efficiency(self, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
+        
+        return 1 / (self.t_comp(D0, alpha, beta, N_gates, N_samples) * self.P)
+        
