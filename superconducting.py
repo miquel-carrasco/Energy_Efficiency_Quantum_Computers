@@ -254,28 +254,37 @@ def plot_D_and_Nsamples(computer: Computer):
     axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
     axs[0].set_xlim(0, max(D_values))
     axs[0].set_yscale('log')
-    axs[0].set_ylim(3.5e-6, 2.5e1)
+    axs[0].set_ylim(3.5e-8, 2.5e1)
 
     axs[0].text(1000, 6e0, "(a)", fontsize = 14)
 
     ax2 = axs[0].twinx()
     ax2.plot(D_values, N_pi_list, alpha=0)
     ax2.set_yscale('log')
-    ax2.set_ylim(3.5e-6*computer.P*T, 2.5e1*computer.P*T)
+    ax2.set_ylim(3.5e-8*computer.P*T, 2.5e1*computer.P*T)
     ax2.set_yticklabels([])
 
     #QFT
     alg = Algorithm(D=1584, eta = 0.3434)
     circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
-    EE_qft = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=100)
-    axs[0].scatter(circ.D, EE_qft, marker='d', color = 'saddlebrown', edgecolors = 'k',linewidth =1, zorder = 10)
+    EE_qft = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1000)
+    axs[0].scatter(circ.D, EE_qft, marker='d', color = 'saddlebrown', edgecolors = 'k',linewidth =1, zorder = 10, label = r"QFT ($D=4304, N_{\rm{samples}}=1000$)")
 
 
     #Adder
     alg = Algorithm(D=1962, eta = 0.3507)
     circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
-    EE_qft = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=100)
-    axs[0].scatter(circ.D, EE_qft, marker='d', color = 'darkorchid', edgecolors = 'k',linewidth =1, zorder = 10)
+    EE_adder = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1000)
+    axs[0].scatter(circ.D, EE_adder, marker='d', color = 'darkorchid', edgecolors = 'k',linewidth =1, zorder = 10, label = r"Adder ($D=5403, N_{\rm{samples}}=100$)")
+
+
+    #ISING
+    D_ising = 3 + (2+Nq-1)
+    alg = Algorithm(D=D_ising, eta = 0)
+    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
+    EE_ising = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1e7)
+    axs[0].scatter(circ.D, EE_ising, marker='d', color = 'teal', edgecolors = 'k',linewidth =1, zorder = 10, label = r"ISING ($D=104, N_{\rm{samples}}=10^{7}$)")
+
 
     #FIG B)
     N_samples_values = np.arange(0, 10010, 10)
@@ -292,7 +301,7 @@ def plot_D_and_Nsamples(computer: Computer):
             N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
             if N_samples == 2500 and D0 in D_values:
                 print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
-        axs[1].plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
+        axs[1].plot(N_samples_values, EE_list, color = colors[i])
   
     # axs[1].text(1750, 3e-2, r"$D=10$", fontsize=10, rotation=-6)
     # axs[1].text(2200, 7e-3, r"$D=100$", fontsize=10, rotation=-6)
@@ -310,12 +319,35 @@ def plot_D_and_Nsamples(computer: Computer):
     axs[1].text(500, 6e0, "(b)", fontsize = 14)
 
 
+    #QFT
+    alg = Algorithm(D=1584, eta = 0.3434)
+    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
+    EE_qft = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1000)
+    axs[1].scatter(1000, EE_qft, marker='d', color = 'saddlebrown', edgecolors = 'k',linewidth =1, zorder = 10, label = r"QFT ($D=4304, N_{\rm{samples}}=1000$)")
+
+
+    #Adder
+    alg = Algorithm(D=1962, eta = 0.3507)
+    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
+    EE_adder = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1000)
+    axs[1].scatter(1000, EE_adder, marker='d', color = 'darkorchid', edgecolors = 'k',linewidth =1, zorder = 10, label = r"Adder ($D=5403, N_{\rm{samples}}=1000$)")
+
+
+    #ISING
+    alg = Algorithm(D=D_ising, eta = 0)
+    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
+    EE_ising = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1e7)
+    axs[1].scatter(1e7, EE_ising, marker='d', color = 'teal', edgecolors = 'k',linewidth =1, zorder = 10, label = r"ISING ($D=104, N_{\rm{samples}}=10^{7}$)")
+
+    axs[1].legend(fontsize=10, loc='upper right', fancybox=False, edgecolor='black')
+
+
     ax2 = axs[1].twinx()
     ax2.plot(N_samples_values, N_pi_list, alpha=0)
     ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
     ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
     ax2.set_yscale('log')
-    ax2.set_ylim(3.5e-6*computer.P*T, 2.5e1*computer.P*T)
+    ax2.set_ylim(3.5e-8*computer.P*T, 2.5e1*computer.P*T)
 
     # axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
 

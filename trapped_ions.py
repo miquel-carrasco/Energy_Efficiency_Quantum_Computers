@@ -29,21 +29,23 @@ compressor , N_compressor = Component('Compressor', 7500, 'Cooling/Vacuum'), 1
 chiller, N_chill = Component('Chiller', 2000, 'Cooling/Vacuum'), 1
 emccd, N_emccd = Component('EMCCD', 96, 'Qubit Control'), 1
 nanopositioner, N_nanopositioner = Component('Nanopositioner Controller', 10, 'Qubit Control'), 1
-magnet, N_magnet = Component('Superconducting Magnet', 180, 'Qubit Control'), 1
 rf_amp, N_rrf_amp = Component('RF Amplifier',72, 'Qubit Control'), 1
 laser_system, N_laser_system = Component('Laser System', 825.7, 'Qubit Control'), 1
+mw_laser_system , N_mw_laser_system = Component('Laser System', 675.7, 'Qubit Control'), 1
 microwave_drive, N_mw_drive = Component('Microwave Drive', 669, 'Qubit Control'), 1
 artiq_control, N_artiq = Component('ARTIQ Control System', 130, 'Qubit Control'), 1
 server, N_server = Component('Server', 100, 'Classical Processing'), 1
 control_desktop, N_control_desktop = Component('Control Desktop', 50, 'Classical Processing'), 1
 HVAC, N_HVAC = Component('HVAC', 2000, 'Cooling/Vacuum'), 1
-# Server, N_server = Component('Server', 130, 'Classical Processing'), 1
-# classical_comp, N_classical_comp = Component('Classical Computer', 180, 'Classical Processing'), 1
 
-components = [compressor, chiller, emccd, nanopositioner, magnet, rf_amp, laser_system, microwave_drive, artiq_control, server, control_desktop, HVAC]
-Ni = [N_compressor, N_chill, N_emccd, N_nanopositioner, N_magnet, N_rrf_amp, N_laser_system, N_mw_drive, N_artiq, N_server, N_control_desktop, N_HVAC]
-Ni = [int(x) for x in Ni]
-P_per_component = [comp.P*Ni[i] for i, comp in enumerate(components)]
+laser_driven_components = [compressor, chiller, emccd, nanopositioner, rf_amp, laser_system, artiq_control, server, control_desktop, HVAC]
+laser_driven_Ni = [N_compressor, N_chill, N_emccd, N_nanopositioner,  N_rrf_amp, N_laser_system, N_artiq, N_server, N_control_desktop, N_HVAC]
+laser_driven_Ni = [int(x) for x in laser_driven_Ni]
+
+
+microwave_driven_components = [compressor, chiller, emccd, nanopositioner, rf_amp, mw_laser_system, artiq_control, server, control_desktop, HVAC, microwave_drive]
+microwave_driven_Ni = [N_compressor, N_chill, N_emccd, N_nanopositioner,  N_rrf_amp, N_mw_laser_system, N_artiq, N_server, N_control_desktop, N_HVAC, N_mw_drive]
+microwave_driven_Ni = [int(x) for x in microwave_driven_Ni]
 
 T = 24*3600
 
@@ -53,15 +55,23 @@ t_2q = 10e-6
 t_shuttle = 100e-6
 t_meas = 0.5e-3
 
-computer = Computer(Nq = 100,
-                    components = components,
-                    N_comp = Ni,
+laser_driven_computer = Computer(Nq = 100,
+                    components = laser_driven_components,
+                    N_comp = laser_driven_Ni,
                     graph_type="All-to-all",
                     t_init = t_init,
                     t_meas = t_meas,
                     T_gates=[t_2q, t_shuttle])
 
-print(computer.P, computer.P*3600*24/1000000)
+microwave_driven_computer = Computer(Nq = 100,
+                    components = microwave_driven_components,
+                    N_comp = microwave_driven_Ni,
+                    graph_type="All-to-all",
+                    t_init = t_init,
+                    t_meas = t_meas,
+                    T_gates=[t_2q, t_shuttle])
+
+print(laser_driven_computer.P, laser_driven_computer.P*3600*24/1000000)
 
 def plot_EE_vs_D(computer: Computer):
 
@@ -182,7 +192,7 @@ def plot_power_breakdown(computer: Computer):
     ax2.set_ylim(0, max(power_types.values())/computer.P*100*1.2)
     ax2.set_ylabel(r"Relative consumption (\%)")
 
-    plt.savefig("Figures/Trapped_ions/trapped_ions_power_breakdown.pdf")
+    plt.savefig("Figures/Trapped_ions/trapped_ions_power_breakdown(laser_driven).pdf")
     plt.close()
 
 def plot_D_and_Nsamples(computer: Computer):
@@ -265,8 +275,27 @@ def plot_D_and_Nsamples(computer: Computer):
     plt.close()
 
 
+def laser_vs_microwave(laser_computer: Computer, mw_computer: Computer):
+    N_samples = 1
+    D_values = np.arange(0, 10010, 10)
+
+    EE_laser = []
+    EE_mw = []
+
+    for D in D_values:
+        alg = Algorithm(D, 0)
+        EE_laser.append(laser_computer.energy_efficiency(T=T, algorithm=alg, N_sampl=N_samples))
+        EE_mw.append(mw_computer.energy_efficiency(T=T, algorithm=alg, N_sampl=N_samples))
+    
+    plt.plot(D_values, EE_laser, label="Laser-driven")
+    plt.plot(D_values, EE_mw, label='Microwave-driven')
+
+    plt.yscale('log')
+
+    plt.show()
+
+
 
 if __name__ == "__main__":
-    plot_D_and_Nsamples(computer)
-    print(computer.P, computer.P*3600*24/1000000)
-    plot_power_breakdown(computer)
+    # plot_power_breakdown(laser_driven_computer)
+    laser_vs_microwave(laser_driven_computer,microwave_driven_computer)
