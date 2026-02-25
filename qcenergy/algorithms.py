@@ -7,11 +7,11 @@ class Algorithm:
     """
     
     def __init__(self,
-                 D: int = 1000,
+                 D0: int = 1000,
                  eta: float = 0.1,
                  ):
         
-        self.D = D
+        self.D0 = D0
         self.eta = eta
 
 

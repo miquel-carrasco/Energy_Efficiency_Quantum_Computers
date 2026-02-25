@@ -1,5 +1,5 @@
 from qcenergy.components import Component
-from qcenergy.platforms import Computer
+from qcenergy.platforms import Computer, SolidStateComputer
 from qcenergy.algorithms import Algorithm, Circuit
 
 import numpy as np
@@ -51,7 +51,8 @@ t_g_worst = 100e-9
 t_meas = 10e-6
 
 
-def plot_power_breakdown(computer: Computer):
+def plot_power_breakdown():
+    computer = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, t_clock=t_g_best)
     power_types = computer.power_per_types()
     power_components = computer.power_per_component()
 
@@ -124,7 +125,7 @@ def crossbar_vs_planar_vs_linear_49_100():
     components = [pulse_tube, dilution_unit, DC_control, BB_control, MW_control, redout_lockin, lna, rt_amplifier, classical_comp, chiller]
     Ni = [N_pt, N_du, N_DC_control, N_BB_control, N_MW_control, N_redout_lockin, N_lna, N_rt_amplifier, N_classical_comp, N_chill]
     Ni = [int(x) for x in Ni]
-    computer_49 = Computer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, T_gates=[t_g_best])
+    computer_49 = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, t_clock=t_g_best)
 
     n = 10
     Nq = n**2
@@ -141,15 +142,16 @@ def crossbar_vs_planar_vs_linear_49_100():
     components = [pulse_tube, dilution_unit, DC_control, BB_control, MW_control, redout_lockin, lna, rt_amplifier, classical_comp, chiller]
     Ni = [N_pt, N_du, N_DC_control, N_BB_control, N_MW_control, N_redout_lockin, N_lna, N_rt_amplifier, N_classical_comp, N_chill]
     Ni = [int(x) for x in Ni]
-    computer_100 = Computer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, T_gates=[t_g_best])
+    computer_100 = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, t_clock=t_g_best)
+
+    eta = 0.9
 
     for D0 in D_values:
-        alg = Algorithm(D=D0, eta=0.9)
-        if D0 == 500:
-            print("2D, 49 qubits", computer_49.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-            print("2D, 100 qubits", computer_100.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-        EE_planar_49.append(computer_49.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-        EE_planar_100.append(computer_100.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
+        # if D0 == 500:
+        #     print("2D, 49 qubits", computer_49.energy_efficiency(D0, eta , N_samples=1))
+        #     print("2D, 100 qubits", computer_100.energy_efficiency(D0, eta, N_samples=1))
+        EE_planar_49.append(computer_49.energy_efficiency(D0, eta, N_samples=1))
+        EE_planar_100.append(computer_100.energy_efficiency(D0, eta, N_samples=1))
 
 
     computer_49.graph_type = "Linear"
@@ -166,12 +168,11 @@ def crossbar_vs_planar_vs_linear_49_100():
     computer_100.N_comp = Ni
     computer_100.list_components = computer_100.assemble()
     for D0 in D_values:
-        alg = Algorithm(D=D0, eta=0.9)
-        if D0 == 500:
-            print("Linear, 49 qubits", computer_49.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-            print("Linear, 100 qubits", computer_100.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-        EE_linear_49.append(computer_49.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-        EE_linear_100.append(computer_100.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
+        # if D0 == 500:
+        #     print("Linear, 49 qubits", computer_49.energy_efficiency(D0, eta, N_samples=1))
+        #     print("Linear, 100 qubits", computer_100.energy_efficiency(D0, eta, N_samples=1))
+        EE_linear_49.append(computer_49.energy_efficiency(D0, eta, N_samples=1))
+        EE_linear_100.append(computer_100.energy_efficiency(D0, eta, N_samples=1))
 
     computer_49.graph_type = "2D"
     computer_100.graph_type = "2D"
@@ -190,12 +191,11 @@ def crossbar_vs_planar_vs_linear_49_100():
     computer_100.N_comp = Ni
     computer_100.list_components = computer_100.assemble()
     for D0 in D_values:
-        alg = Algorithm(D=D0, eta=0.9)
-        if D0 == 500:
-            print("Crossbar, 49 qubits", computer_49.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-            print("Crossbar, 100 qubits", computer_100.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-        EE_crossbar_og_49.append(computer_49.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-        EE_crossbar_og_100.append(computer_100.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
+        # if D0 == 500:
+        #     print("Crossbar, 49 qubits", computer_49.energy_efficiency(D0, eta, N_samples=1))
+        #     print("Crossbar, 100 qubits", computer_100.energy_efficiency(D0, eta, N_samples=1))
+        EE_crossbar_og_49.append(computer_49.energy_efficiency(D0, eta, N_samples=1))
+        EE_crossbar_og_100.append(computer_100.energy_efficiency(D0, eta, N_samples=1))
     
     computer_49.t_clock = 10e-9
     computer_49.t_meas = 10e-6
@@ -204,12 +204,11 @@ def crossbar_vs_planar_vs_linear_49_100():
     computer_100.t_meas = 10e-6
     computer_100.N_comp = Ni
     for D0 in D_values:
-        alg = Algorithm(D=D0, eta=0.9)
-        if D0 == 500:
-            print("Crossbar, 49 qubits", computer_49.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-            print("Crossbar, 100 qubits", computer_100.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-        EE_crossbar_red_49.append(computer_49.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
-        EE_crossbar_red_100.append(computer_100.energy_efficiency(T = T, algorithm=alg, N_sampl=1))
+        # if D0 == 500:
+        #     print("Crossbar, 49 qubits", computer_49.energy_efficiency(D0, eta, N_samples=1))
+        #     print("Crossbar, 100 qubits", computer_100.energy_efficiency(D0, eta, N_samples=1))
+        EE_crossbar_red_49.append(computer_49.energy_efficiency(D0, eta, N_samples=1))
+        EE_crossbar_red_100.append(computer_100.energy_efficiency(D0, eta, N_samples=1))
 
     ax[0].set_title(r"(a) $N_{\mathrm{qubits}}=49$", fontsize=13)
     ax[0].plot(D_values, EE_linear_49, label='Linear', color = colors[0])
@@ -238,13 +237,15 @@ def crossbar_vs_planar_vs_linear_49_100():
     fig.savefig("Figures/Spin_qubits/spin_qubits_crossbar_vs_planar_vs_linear.pdf", bbox_inches='tight')
     plt.close()
 
-def plot_D_and_Nsamples(computer: Computer):
+def plot_D_and_Nsamples():
+    computer = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, t_clock=t_g_best)
 
     fig, axs = plt.subplots(1, 2, figsize=(10,4), sharey=True)
 
     #FIG A)
     N_samples_values = [1, 10, 100, 1000, 10000]
 
+    eta = 0
     D_values = np.arange(0, 10010, 10)
     D_print = [1, 10, 100, 1000, 10000]
 
@@ -254,11 +255,10 @@ def plot_D_and_Nsamples(computer: Computer):
         EE_list = []
         N_pi_list = []
         for D0 in D_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            EE_list.append(computer.energy_efficiency(D0, eta, N_samples=N_samples))
+            N_pi_list.append(computer.N_pi(D0 = D0, eta = eta, t = 24*3600, N_samples=N_samples))
             if N_samples == 100 and D0 in D_print:
-                print(f"N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+                print(f"N_samples={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[0].plot(D_values, EE_list, color = colors[i])
         axs[0].text(4000, EE_list[-1]*1.7, rf"$N_{{samples}}={N_samples}$", rotation = -3, fontsize=10)
 
@@ -287,11 +287,10 @@ def plot_D_and_Nsamples(computer: Computer):
         EE_list = []
         N_pi_list = []
         for N_samples in N_samples_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            EE_list.append(computer.energy_efficiency(D0, eta, N_samples=N_samples))
+            N_pi_list.append(computer.N_pi(D0 = D0, eta = eta, t = 24*3600, N_samples=N_samples))
             if N_samples == 2500 and D0 in D_values:
-                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_samples={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[1].plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
     axs[1].annotate(r"$D=100$", xy=(2300, 1.8e-4), xytext=(1800, 9e-4), arrowprops=dict(arrowstyle="->"), fontsize=10, rotation=-6)
     axs[1].annotate(r"$D=1000$", xy=(3000, 1.3e-4), xytext=(2400, 3e-4), arrowprops=dict(arrowstyle="->"), fontsize=10, rotation=-6.5)
@@ -308,7 +307,7 @@ def plot_D_and_Nsamples(computer: Computer):
 
     ax2 = axs[1].twinx()
     ax2.plot(N_samples_values, N_pi_list, alpha=0)
-    ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
+    ax2.set_ylabel(r"Number of Computations in 24h, $N^{\pi}(24h)$")
     ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
     ax2.set_yscale('log')
     ax2.set_ylim(8.5e-6*computer.P*T, 8.5e0*computer.P*T)
@@ -323,4 +322,4 @@ def plot_D_and_Nsamples(computer: Computer):
 
 
 if __name__ == "__main__":
-    crossbar_vs_planar_vs_linear_49_100()
+    plot_D_and_Nsamples()

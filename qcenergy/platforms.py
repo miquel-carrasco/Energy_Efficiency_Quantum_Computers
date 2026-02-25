@@ -1,6 +1,7 @@
 from qcenergy.components import Component
 from qcenergy.graphs import expander_graph, ND_graph, linear
 from qcenergy.algorithms import Algorithm, Circuit
+import math
 """
 Defines the base classes for computation platforms.
 """
@@ -13,43 +14,13 @@ class Computer:
     def __init__(self,
                  Nq: int = 100,
                  components: list[Component] = [],
-                 N_comp: list[int] = [], 
-                 t_init: float = 0.0, 
-                 t_meas: float = 0.0, 
-                 T_gates: list[float] = [],
-                 graph_type: str = "All-to-all"
+                 N_comp: list[int] = []
                  ):
         
         self.Nq = Nq
         self.components = components
         self.N_comp = N_comp
         self.list_components = self.assemble()
-        self.t_init = t_init
-        self.t_meas = t_meas
-        self.t_clock = max(T_gates)
-        self.graph_type = graph_type
-
-
-    @property
-    def avg_diameter(self) -> float:
-        """
-        Return the average diameter of the computer's connectivity graph.
-
-        Returns:
-            float: average diameter.
-        """
-        if self.graph_type == "All-to-all":
-            return 1.0
-        elif self.graph_type == "Expander":
-            return expander_graph(self.Nq)
-        elif self.graph_type == "2D":
-            return ND_graph(self.Nq, 2)
-        elif self.graph_type == "3D":
-            return ND_graph(self.Nq, 3)
-        elif self.graph_type == "Linear":
-            return linear(self.Nq)
-        else:
-            raise ValueError(f"Unknown graph type: {self.graph_type}")
         
 
     @property
@@ -119,21 +90,7 @@ class Computer:
         for type in self.list_types_components:
             energy_dict[type] = sum([comp.P for comp in self.list_components if comp.comp_type == type])
         
-        return {k: v  for k,v in sorted(energy_dict.items(), key=lambda item: item[1], reverse=True)}
-    
-
-    def total_energy(self, time: float) -> float:
-        """
-        Return the total energy spent for a given time.
-
-        Args:
-            time (float): time in seconds.
-
-        Returns:
-            float: total energy fixed_energy + power*t.
-        """
-        return sum([comp.computation_energy(time) for comp in self.list_components])
-        
+        return {k: v  for k,v in sorted(energy_dict.items(), key=lambda item: item[1], reverse=True)}        
     
 
     @property
@@ -147,46 +104,110 @@ class Computer:
         return sum([comp.P for comp in self.list_components])
     
     
-    def N(self, T: float, algorithm: Algorithm, N_sampl: float) -> float:
+
+class SolidStateComputer(Computer):
+    """
+    A solid-state computer.
+    """
+    def __init__(self,
+                 Nq: int = 100,
+                 components: list[Component] = [],
+                 N_comp: list[int] = [], 
+                 t_init: float = 0.0, 
+                 t_meas: float = 0.0, 
+                 t_clock: float = 0.0,
+                 graph_type: str = "All-to-all"
+                 ):
+    
+        super().__init__(Nq=Nq, components=components, N_comp=N_comp)
+        self.t_init = t_init
+        self.t_meas = t_meas
+        self.t_clock = t_clock
+        self.graph_type = graph_type
+
+        self.list_components = self.assemble()
+
+    
+    @property
+    def avg_diameter(self) -> float:
+        """
+        Return the average diameter of the computer's connectivity graph.
+
+        Returns:
+            float: average diameter.
+        """
+        if self.graph_type == "All-to-all":
+            return 1.0
+        elif self.graph_type == "Expander":
+            return expander_graph(self.Nq)
+        elif self.graph_type == "2D":
+            return ND_graph(self.Nq, 2)
+        elif self.graph_type == "3D":
+            return ND_graph(self.Nq, 3)
+        elif self.graph_type == "Linear":
+            return linear(self.Nq)
+        else:
+            raise ValueError(f"Unknown graph type: {self.graph_type}")
+    
+    def final_circuit_depth(self, D0: int, eta: float) -> int:
+        """
+        Return the final depth of the circuit after compilation.
+
+        Args:
+            D0 (int): initial depth of the circuit.
+            eta (float): overhead factor for routing.
+
+        Returns:
+            int: final depth of the circuit.
+        """
+        
+        return D0*(1 + eta*math.ceil((self.avg_diameter-1)/2))
+
+    def t_comp(self, D0: int, eta: float, N_samples: float) -> float:
+        """
+        Return the computation time for a given algorithm.
+
+        Args:
+            D0 (int): initial depth of the circuit.
+            eta (float): overhead factor for routing.
+            N_samples (float): number of samples.
+
+        Returns:
+            float: computation time.
+        """
+        D = self.final_circuit_depth(D0, eta)
+        return (self.t_init + D*self.t_clock + self.t_meas)*N_samples
+        
+    
+    def N_pi(self, t: float, D0: int, eta: float, N_samples: float) -> float:
         """
         Return the number of computations that can be performed in time T.
 
         Args:
-            T (float): time in seconds.
-            T_list (dict): list of computation times for each component.
+            t (float): time in seconds.
+            D0 (int): initial depth of the circuit.
+            eta (float): overhead factor for routing.
+            N_sampl (float): number of samples.
 
         Returns:
             float: number of computations.
         """
 
-        circuit = Circuit(algorithm=algorithm, avg_diameter=self.avg_diameter)
-        return T / ((self.t_init + circuit.D*self.t_clock + self.t_meas)*N_sampl)
+        return t / self.t_comp(D0, eta, N_samples)
 
-    def energy_efficiency(self, T: float, algorithm: Algorithm, N_sampl: float) -> float:
+    def energy_efficiency(self, D0: int, eta: float, N_samples: float) -> float:
         """
         Return the energy efficiency of the computer.
 
         Args:
-            T (float): time in seconds.
+            D0 (int): initial depth of the circuit.
+            eta (float): overhead factor for routing.
+            N_sampl (float): number of samples.
+
             T_list (dict): list of computation times for each component.
 
         Returns:
             float: energy efficiency.
         """
 
-        return self.N(T, algorithm, N_sampl) / (T*self.P)
-    
-
-    def t_comp(self, algorithm: Algorithm, N_sampl: float) -> float:
-        """
-        Return the computation time for a given algorithm.
-
-        Args:
-            algorithm (Algorithm): algorithm to be executed.
-            N_sampl (float): number of samples.
-        
-        Returns:
-            float: computation time.
-        """
-        circuit = Circuit(algorithm=algorithm, avg_diameter=self.avg_diameter)
-        return (self.t_init + circuit.D*self.t_clock + self.t_meas)*N_sampl
+        return 1 / (self.t_comp(D0, eta, N_samples) * self.P)
