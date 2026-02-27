@@ -1,5 +1,5 @@
 from qcenergy.components import Component
-from qcenergy.platforms import Computer
+from qcenergy.platforms import Computer, TrappedIonsComputer
 from qcenergy.algorithms import Algorithm, Circuit
 
 import numpy as np
@@ -8,7 +8,7 @@ from matplotlib.colors import LogNorm
 from matplotlib import colormaps
 import math
 
-params = {'axes.labelsize': 14, 
+params = {'axes.labelsize': 14,
          'axes.titlesize': 15,
          'axes.linewidth': 1.5,
          'lines.markeredgecolor': "black",
@@ -23,136 +23,38 @@ params = {'axes.labelsize': 14,
 plt.rcParams.update(params)
 
 Nq = 100
+N_gatezones = 1
 
 
-compressor , N_compressor = Component('Compressor', 7500, 'Cooling/Vacuum'), 1
-chiller, N_chill = Component('Chiller', 2000, 'Cooling/Vacuum'), 1
-emccd, N_emccd = Component('EMCCD', 96, 'Qubit Control'), 1
-nanopositioner, N_nanopositioner = Component('Nanopositioner Controller', 10, 'Qubit Control'), 1
-rf_amp, N_rrf_amp = Component('RF Amplifier',72, 'Qubit Control'), 1
-laser_system, N_laser_system = Component('Laser System', 825.7, 'Qubit Control'), 1
-mw_laser_system , N_mw_laser_system = Component('Laser System', 675.7, 'Qubit Control'), 1
-microwave_drive, N_mw_drive = Component('Microwave Drive', 669, 'Qubit Control'), 1
-artiq_control, N_artiq = Component('ARTIQ Control System', 130, 'Qubit Control'), 1
-server, N_server = Component('Server', 100, 'Classical Processing'), 1
-control_desktop, N_control_desktop = Component('Control Desktop', 50, 'Classical Processing'), 1
-HVAC, N_HVAC = Component('HVAC', 2000, 'Cooling/Vacuum'), 1
+compressor , N_compressor = Component('Compressor', 7500, 'Environmental Conditions'), 1
+chiller, N_chill = Component('Chiller', 2000, 'Environmental Conditions'), 1
+image_system, N_image = Component('Image System', 100, 'Qubit Control'), 1
+HVAC, N_HVAC = Component('HVAC', 9000, 'Environmental Conditions'), 1
+magnetic_field_generation, N_magnetic_field = Component('Magnetic Field Generation', 1, 'Qubit Control'), 1
+active_control, N_active_control = Component('Active Control System', 100, 'Qubit Control'), N_gatezones
+gate_drive, N_gate_drive = Component('Gate Drive', 800, 'Qubit Control'), 1
+passive_control, N_passive_control = Component('Passive Control System', 200, 'Qubit Control'), 1
+control_desktop, N_control_desktop = Component('Control Desktop', 150, 'Classical Processing'), 1
 
-laser_driven_components = [compressor, chiller, emccd, nanopositioner, rf_amp, laser_system, artiq_control, server, control_desktop, HVAC]
-laser_driven_Ni = [N_compressor, N_chill, N_emccd, N_nanopositioner,  N_rrf_amp, N_laser_system, N_artiq, N_server, N_control_desktop, N_HVAC]
-laser_driven_Ni = [int(x) for x in laser_driven_Ni]
+components_cryo = [compressor, chiller, image_system, HVAC, magnetic_field_generation, active_control, gate_drive, passive_control, control_desktop]
+N_comp_cryo = [N_compressor, N_chill, N_image, N_HVAC, N_magnetic_field, N_active_control, N_gate_drive, N_passive_control, N_control_desktop]
 
-
-microwave_driven_components = [compressor, chiller, emccd, nanopositioner, rf_amp, mw_laser_system, artiq_control, server, control_desktop, HVAC, microwave_drive]
-microwave_driven_Ni = [N_compressor, N_chill, N_emccd, N_nanopositioner,  N_rrf_amp, N_mw_laser_system, N_artiq, N_server, N_control_desktop, N_HVAC, N_mw_drive]
-microwave_driven_Ni = [int(x) for x in microwave_driven_Ni]
+components_no_cryo = [image_system, HVAC, magnetic_field_generation, active_control, gate_drive, passive_control, control_desktop]
+N_comp_no_cryo = [N_image, N_HVAC, N_magnetic_field, N_active_control, N_gate_drive, N_passive_control, N_control_desktop]
 
 T = 24*3600
 
 
-t_init = 100e-3 #Doppler cooling
-t_2q = 10e-6 
-t_shuttle = 100e-6
+t_reset = 100e-3 #Doppler cooling
+t_clock_1_gatezone = 70e-6
+t_clock_mult_gatezones = 1e-3
+t_transport = 50e-3
 t_meas = 0.5e-3
 
-laser_driven_computer = Computer(Nq = 100,
-                    components = laser_driven_components,
-                    N_comp = laser_driven_Ni,
-                    graph_type="All-to-all",
-                    t_init = t_init,
-                    t_meas = t_meas,
-                    T_gates=[t_2q, t_shuttle])
 
-microwave_driven_computer = Computer(Nq = 100,
-                    components = microwave_driven_components,
-                    N_comp = microwave_driven_Ni,
-                    graph_type="All-to-all",
-                    t_init = t_init,
-                    t_meas = t_meas,
-                    T_gates=[t_2q, t_shuttle])
+def plot_power_breakdown():
+    computer = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=N_gatezones)
 
-print(laser_driven_computer.P, laser_driven_computer.P*3600*24/1000000)
-
-def plot_EE_vs_D(computer: Computer):
-
-    N_samples_values = [1, 10, 100, 1000, 10000]
-
-    D_values = np.arange(0, 10010, 10)
-    D_print = [1, 10, 100, 1000, 10000]
-
-    fig, ax1 = plt.subplots()
-    colors = colormaps['Reds'](np.linspace(0.3, 0.8, len(N_samples_values)))
-
-    for i, N_samples in enumerate(N_samples_values):
-        EE_list = []
-        N_pi_list = []
-        for D0 in D_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
-            if N_samples == 100 and D0 in D_print:
-                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
-        ax1.plot(D_values, EE_list, color = colors[i])
-        ax1.text(4000, EE_list[-1]*2.4, rf"$N_{{samples}}={N_samples}$", rotation = -6, fontsize=10)
-
-    ax1.set_xlabel(r"Final Circuit Depth, $D$")
-    ax1.set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
-    ax1.set_xlim(0, max(D_values))
-    ax1.set_yscale('log')
-    ax1.set_ylim(2.5e-3, 2.5e-3)
-
-
-
-    ax2 = ax1.twinx()
-    ax2.plot(D_values, N_pi_list, alpha=0)
-    ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
-    ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
-    ax2.set_yscale('log')
-    # ax2.set_ylim(2.5e-3*computer.P*T, 1.7e1*computer.P*T)
-
-    plt.savefig("Figures/Trapped_ions/trapped_ions_EE_vs_D.pdf", bbox_inches='tight')
-    plt.close()
-
-
-def plot_EE_vs_Nsamples(computer: Computer):
-
-    N_samples_values = np.arange(0, 10010, 10)
-    D_values = [100, 1000, 10000]
-
-    fig, ax1 = plt.subplots()
-    colors = colormaps['Reds'](np.linspace(0.3, 0.8, len(D_values)))
-
-    for i, D0 in enumerate(D_values):
-        EE_list = []
-        N_pi_list = []
-        for N_samples in N_samples_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
-            if N_samples == 2500 and D0 in D_values:
-                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
-        ax1.plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
-
-    ax1.set_xlabel(r"Number of samples, $N_{\mathrm{samples}}$")
-    ax1.set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
-    ax1.set_xlim(0, 5010)
-    ax1.set_yscale('log')
-    # ax1.set_ylim(2.5e-5, 2.7e-2)
-
-
-    ax2 = ax1.twinx()
-    ax2.plot(N_samples_values, N_pi_list, alpha=0)
-    ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
-    ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
-    ax2.set_yscale('log')
-    # ax2.set_ylim(2.5e-5*computer.P*T, 2.7e-2*computer.P*T)
-
-    ax1.legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
-
-    plt.savefig("Figures/Trapped_ions/trapped_ions_EE_vs_Nsamples.pdf", bbox_inches='tight')
-    plt.close()
-
-def plot_power_breakdown(computer: Computer):
     power_types = computer.power_per_types()
     power_components = computer.power_per_component()
 
@@ -192,11 +94,14 @@ def plot_power_breakdown(computer: Computer):
     ax2.set_ylim(0, max(power_types.values())/computer.P*100*1.2)
     ax2.set_ylabel(r"Relative consumption (\%)")
 
-    plt.savefig("Figures/Trapped_ions/trapped_ions_power_breakdown(laser_driven).pdf")
+    plt.savefig("Figures/Trapped_ions/trapped_ions_power_breakdown.pdf")
     plt.close()
 
-def plot_D_and_Nsamples(computer: Computer):
-
+def plot_D_and_Nsamples():
+    computer = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=N_gatezones, independent_gates=False)
+    alpha = 0 #No increase in depth due to non-indep gates
+    beta = 1 #All layers require transport
+    print(computer.P)
     fig, axs = plt.subplots(1, 2, figsize=(10,4), sharey=True)
 
     #FIG A)
@@ -211,11 +116,10 @@ def plot_D_and_Nsamples(computer: Computer):
         EE_list = []
         N_pi_list = []
         for D0 in D_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            EE_list.append(computer.energy_efficiency(D0, alpha, beta, N_gates=D0, N_samples=N_samples))
+            N_pi_list.append(computer.N_pi(t=T, D0=D0, alpha=alpha, beta=beta, N_gates=D0, N_samples=N_samples))
             if N_samples == 100 and D0 in D_print:
-                print(f"N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+                print(f"N_samples={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[0].plot(D_values, EE_list, color = colors[i])
         axs[0].text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N_samples}$", rotation = -6, fontsize=10)
 
@@ -223,14 +127,14 @@ def plot_D_and_Nsamples(computer: Computer):
     axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
     axs[0].set_xlim(0, max(D_values))
     axs[0].set_yscale('log')
-    axs[0].set_ylim(5e-9, 2.5e-3)
+    axs[0].set_ylim(8.5e-12, 2.5e-4)
 
-    axs[0].text(1000, 1e-3, "(a)", fontsize = 14)
+    axs[0].text(1000, 5e-5, "(a)", fontsize = 14)
 
     ax2 = axs[0].twinx()
     ax2.plot(D_values, N_pi_list, alpha=0)
     ax2.set_yscale('log')
-    ax2.set_ylim(5e-9*computer.P*T, 2.5e-3*computer.P*T)
+    ax2.set_ylim(8.5e-12*computer.P*T, 2.5e-4*computer.P*T)
     ax2.set_yticklabels([])
 
 
@@ -244,20 +148,20 @@ def plot_D_and_Nsamples(computer: Computer):
         EE_list = []
         N_pi_list = []
         for N_samples in N_samples_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            EE_list.append(computer.energy_efficiency(D0, alpha, beta, N_gates=D0, N_samples=N_samples))
+            N_pi_list.append(computer.N_pi(t=T, D0=D0, alpha=alpha, beta=beta, N_gates=D0, N_samples=N_samples))
             if N_samples == 2500 and D0 in D_values:
-                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_samples={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[1].plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
+        axs[1].text(2200, EE_list[-1]*5, rf"$D={D0}$", rotation = -6, fontsize=10)
 
     axs[1].set_xlabel(r"Number of samples, $N_{\mathrm{samples}}$")
     # axs[1].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
     axs[1].set_xlim(0, 5010)
     axs[1].set_yscale('log')
-    # axs[1].set_ylim(5e-9, 2.7e-2)
+    # axs[1].set_ylim(8.5e-12, 2.7e-2)
 
-    axs[1].text(500, 1e-3, "(b)", fontsize = 14)
+    axs[1].text(500, 5e-5, "(b)", fontsize = 14)
 
 
     ax2 = axs[1].twinx()
@@ -265,9 +169,9 @@ def plot_D_and_Nsamples(computer: Computer):
     ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
     ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
     ax2.set_yscale('log')
-    ax2.set_ylim(5e-9*computer.P*T, 2.5e-3*computer.P*T)
+    ax2.set_ylim(8.5e-12*computer.P*T, 2.5e-4*computer.P*T)
 
-    axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
+    # axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
 
     plt.subplots_adjust(wspace=0.1)
 
@@ -275,27 +179,136 @@ def plot_D_and_Nsamples(computer: Computer):
     plt.close()
 
 
-def laser_vs_microwave(laser_computer: Computer, mw_computer: Computer):
-    N_samples = 1
-    D_values = np.arange(0, 10010, 10)
+def plot_comparison_traps_2():
+    N_comp_no_cryo = [N_image, N_HVAC, N_magnetic_field, 20, N_gate_drive, N_passive_control, N_control_desktop]
+    computer_20traps_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=20, independent_gates=True)
 
-    EE_laser = []
-    EE_mw = []
+    N_components_10traps = [N_image, N_HVAC, N_magnetic_field, 10, N_gate_drive, N_passive_control, N_control_desktop]
+    computer_10traps_no_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
+    computer_10traps_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
+    alpha = 0.5
+    beta_1 = 0.9
+    beta_10 = beta_1/10
+    beta_20 = beta_1/20
+    Ng_per_layer = 1
 
-    for D in D_values:
-        alg = Algorithm(D, 0)
-        EE_laser.append(laser_computer.energy_efficiency(T=T, algorithm=alg, N_sampl=N_samples))
-        EE_mw.append(mw_computer.energy_efficiency(T=T, algorithm=alg, N_sampl=N_samples))
-    
-    plt.plot(D_values, EE_laser, label="Laser-driven")
-    plt.plot(D_values, EE_mw, label='Microwave-driven')
-
+    D_values = np.arange(1, 111, 1)
+    EE_10traps_no_indep = []
+    EE_10traps_indep = []
+    EE_20traps_indep = []
+    for D0 in D_values:
+        Ng = D0*Ng_per_layer
+        EE_10traps_no_indep.append(computer_10traps_no_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
+        EE_10traps_indep.append(computer_10traps_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
+        EE_20traps_indep.append(computer_20traps_indep.energy_efficiency(D0, alpha, beta_20, N_gates=Ng, N_samples=100))
+    plt.plot(D_values, EE_10traps_no_indep, label="10 traps, no independent gates")
+    plt.plot(D_values, EE_10traps_indep, label="10 traps, independent gates")
+    plt.plot(D_values, EE_20traps_indep, label="20 traps, independent gates")
+    plt.xlabel(r"Final Circuit Depth, $D$")
+    plt.ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    plt.xlim(0, max(D_values))
     plt.yscale('log')
-
+    plt.legend()
     plt.show()
 
+def plot_comparison_traps():
+    computer_1trap = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=1, independent_gates=False)
+
+    N_components_10traps = [N_image, N_HVAC, N_magnetic_field, 10, N_gate_drive, N_passive_control, N_control_desktop]
+    computer_10traps_no_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
+    computer_10traps_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
+
+    fig, axs = plt.subplots(1,3, figsize=(15,4), sharey=True)
+
+    Ng_per_layer_vals = [1, 10, 50]
+
+    beta_1 = 0
+    beta_10 = beta_1/10
+
+    for i, Ng_per_layer in enumerate(Ng_per_layer_vals):
+        #Worst case
+        alpha = 1
+
+        D_values = np.arange(1, 1010, 5)
+        EE_1trap_worst = []
+        EE_10traps_no_indep= []
+        EE_10traps_indep = []
+        for D0 in D_values:
+            Ng = D0*Ng_per_layer
+            EE_1trap_worst.append(computer_1trap.energy_efficiency(D0, alpha, beta_1, N_gates=Ng, N_samples=100))
+            EE_10traps_no_indep.append(computer_10traps_no_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
+            EE_10traps_indep.append(computer_10traps_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
+
+
+        axs[i].plot(D_values, EE_1trap_worst, label=r"1 trap", color='royalblue')
+        axs[i].plot(D_values, EE_10traps_no_indep, color='yellowgreen')
+        axs[i].plot(D_values, EE_10traps_indep, label=r"10 traps, independent gates", color='darkgreen', linestyle='--')
+        axs[i].fill_between(D_values, EE_10traps_indep, EE_10traps_no_indep, color='yellowgreen', alpha=0.5, label=r"10 traps, no independent gates ($\alpha=[0,1]$)")
+
+        axs[i].set_xlabel(r"Pre-routing circuit depth, $D_{0}$")
+        axs[i].set_xlim(0, max(D_values))
+        axs[i].set_yscale('log')
+
+    axs[0].text(320, 8.5e-6, r"a) $<N_{\rm{g}}^{\rm{layer}}>=1$", fontsize=14)
+    axs[1].text(320, 8.5e-6, r"b) $<N_{\rm{g}}^{\rm{layer}}>=10$", fontsize=14)
+    axs[2].text(320, 8.5e-6, r"c) $<N_{\rm{g}}^{\rm{layer}}>=50$", fontsize=14)
+    axs[0].set_ylim(1.1e-7, 1.5e-5)
+    axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    axs[0].legend(fontsize=11, loc='lower left', fancybox=False, edgecolor='black')
+
+    fig.savefig(f"Figures/Trapped_ions/trapped_ions_comparison_traps_beta1={beta_1}.pdf", bbox_inches='tight')
+
+
+def plot_beta_tradeoff():
+    computer_1trap = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=1, independent_gates=False)
+
+    N_components_10traps = [N_image, N_HVAC, N_magnetic_field, 10, N_gate_drive, N_passive_control, N_control_desktop]
+    computer_10traps_no_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
+    computer_10traps_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
+
+    fig, axs = plt.subplots(1,3, figsize=(15,4), sharey=True)
+
+    Ng_per_layer_vals = [1, 10, 50]
+
+    beta_vals = np.logspace(-3, 0, 20)
+    D0 = 500
+    Ng_per_layer = 1
+    alpha = 1
+    for i, Ng_per_layer in enumerate(Ng_per_layer_vals):
+        EE_1trap = []
+        EE_10traps_no_indep= []
+        EE_10traps_indep = []
+        for beta in beta_vals:
+            beta_1 = beta
+            beta_10 = beta_1/10
+            Ng = D0*Ng_per_layer
+            EE_1trap.append(computer_1trap.energy_efficiency(D0, alpha, beta_1, N_gates=Ng, N_samples=100))
+            EE_10traps_no_indep.append(computer_10traps_no_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
+            EE_10traps_indep.append(computer_10traps_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
+        axs[i].plot(beta_vals, EE_1trap, label=r"1 trap", color='royalblue')
+        axs[i].plot(beta_vals, EE_10traps_no_indep, color='yellowgreen')
+        axs[i].plot(beta_vals, EE_10traps_indep, label=r"10 traps, independent gates", color='darkgreen', linestyle='--')
+        axs[i].fill_between(beta_vals, EE_10traps_indep, EE_10traps_no_indep, color='yellowgreen', alpha=0.5, label=r"10 traps, no independent gates ($\alpha=[0,1]$)")
+        axs[i].set_xlabel(r"Transport per layer ratio, $\beta$")
+
+    axs[0].set_xscale('log')
+    axs[0].set_xlim(1e-3, 1)
+    axs[0].set_yscale('log')
+    axs[1].set_xscale('log')
+    axs[1].set_xlim(1e-3, 1)
+    axs[2].set_xscale('log')
+    axs[2].set_xlim(1e-3, 1)
+    axs[0].set_ylim(5.1e-10, 8.5e-6)
+
+
+    axs[0].text(1e-2, 3e-6, r"a) $<N_{\rm{g}}^{\rm{layer}}>=1$", fontsize=14)
+    axs[1].text(1e-2, 3e-6, r"b) $<N_{\rm{g}}^{\rm{layer}}>=10$", fontsize=14)
+    axs[2].text(1e-2, 3e-6, r"c) $<N_{\rm{g}}^{\rm{layer}}>=50$", fontsize=14)
+    axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    axs[0].legend(fontsize=11, loc='lower left', fancybox=False, edgecolor='black')
+
+    fig.savefig(f"Figures/Trapped_ions/trapped_ions_beta_tradeoff.pdf", bbox_inches='tight')
 
 
 if __name__ == "__main__":
-    # plot_power_breakdown(laser_driven_computer)
-    laser_vs_microwave(laser_driven_computer,microwave_driven_computer)
+    plot_comparison_traps()

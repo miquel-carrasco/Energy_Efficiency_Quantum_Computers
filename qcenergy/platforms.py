@@ -113,14 +113,14 @@ class SolidStateComputer(Computer):
                  Nq: int = 100,
                  components: list[Component] = [],
                  N_comp: list[int] = [], 
-                 t_init: float = 0.0, 
+                 t_reset: float = 0.0, 
                  t_meas: float = 0.0, 
                  t_clock: float = 0.0,
                  graph_type: str = "All-to-all"
                  ):
     
         super().__init__(Nq=Nq, components=components, N_comp=N_comp)
-        self.t_init = t_init
+        self.t_reset = t_reset
         self.t_meas = t_meas
         self.t_clock = t_clock
         self.graph_type = graph_type
@@ -176,7 +176,7 @@ class SolidStateComputer(Computer):
             float: computation time.
         """
         D = self.final_circuit_depth(D0, eta)
-        return (self.t_init + D*self.t_clock + self.t_meas)*N_samples
+        return (self.t_reset + D*self.t_clock + self.t_meas)*N_samples
         
     
     def N_pi(self, t: float, D0: int, eta: float, N_samples: float) -> float:
@@ -222,7 +222,7 @@ class TrappedIonsComputer(Computer):
                  Nq: int = 100,
                  components: list[Component] = [],
                  N_comp: list[int] = [], 
-                 t_init: float = 0.0, 
+                 t_reset: float = 0.0, 
                  t_meas: float = 0.0, 
                  t_clock: float = 0.0,
                  t_transport: float = 0.0,
@@ -231,7 +231,7 @@ class TrappedIonsComputer(Computer):
                  ):
     
         super().__init__(Nq=Nq, components=components, N_comp=N_comp)
-        self.t_init = t_init
+        self.t_reset = t_reset
         self.t_meas = t_meas
         self.t_clock = t_clock
         self.t_transport = t_transport
@@ -248,16 +248,16 @@ class TrappedIonsComputer(Computer):
 
     def final_circuit_depth(self, D0: int, alpha: float, N_gates: int) -> int:
 
-        if not self.independent_gates:
+        if not self.independent_gates and N_gates > 1:
             D_prima = self.no_indep_depth(D0, alpha)
         else:
             D_prima = D0
-        
+               
         return N_gates / min(N_gates/D_prima, self.N_gatezones)
     
     def t_comp(self, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
 
-        return (self.t_init + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples
+        return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples
     
     def N_pi(self, t: float, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
         
@@ -266,4 +266,3 @@ class TrappedIonsComputer(Computer):
     def energy_efficiency(self, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
         
         return 1 / (self.t_comp(D0, alpha, beta, N_gates, N_samples) * self.P)
-        
