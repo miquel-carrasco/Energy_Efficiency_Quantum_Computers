@@ -214,7 +214,7 @@ class SolidStateComputer(Computer):
 
 
 
-class TrappedIonsComputer(Computer):
+class AtomBasedComputer(Computer):
     """
     A trapped ions computer.
     """

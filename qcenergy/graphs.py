@@ -1,6 +1,5 @@
-import numpy as np
-
 def expander_graph(Nq):
+    import numpy as np
     return np.log(Nq)
 
 def ND_graph(Nq, D):
