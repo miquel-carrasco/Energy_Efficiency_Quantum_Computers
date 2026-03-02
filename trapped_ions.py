@@ -1,5 +1,5 @@
 from qcenergy.components import Component
-from qcenergy.platforms import Computer, TrappedIonsComputer
+from qcenergy.platforms import Computer, AtomBasedComputer
 from qcenergy.algorithms import Algorithm, Circuit
 
 import numpy as np
@@ -53,7 +53,7 @@ t_meas = 0.5e-3
 
 
 def plot_power_breakdown():
-    computer = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=N_gatezones)
+    computer = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=N_gatezones)
 
     power_types = computer.power_per_types()
     power_components = computer.power_per_component()
@@ -98,7 +98,7 @@ def plot_power_breakdown():
     plt.close()
 
 def plot_D_and_Nsamples():
-    computer = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=N_gatezones, independent_gates=False)
+    computer = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=N_gatezones, independent_gates=False)
     alpha = 0 #No increase in depth due to non-indep gates
     beta = 1 #All layers require transport
     print(computer.P)
@@ -178,51 +178,18 @@ def plot_D_and_Nsamples():
     plt.savefig("Figures/Trapped_ions/trapped_ions_D_and_Nsamples.pdf", bbox_inches='tight')
     plt.close()
 
-
-def plot_comparison_traps_2():
-    N_comp_no_cryo = [N_image, N_HVAC, N_magnetic_field, 20, N_gate_drive, N_passive_control, N_control_desktop]
-    computer_20traps_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=20, independent_gates=True)
-
-    N_components_10traps = [N_image, N_HVAC, N_magnetic_field, 10, N_gate_drive, N_passive_control, N_control_desktop]
-    computer_10traps_no_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
-    computer_10traps_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
-    alpha = 0.5
-    beta_1 = 0.9
-    beta_10 = beta_1/10
-    beta_20 = beta_1/20
-    Ng_per_layer = 1
-
-    D_values = np.arange(1, 111, 1)
-    EE_10traps_no_indep = []
-    EE_10traps_indep = []
-    EE_20traps_indep = []
-    for D0 in D_values:
-        Ng = D0*Ng_per_layer
-        EE_10traps_no_indep.append(computer_10traps_no_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
-        EE_10traps_indep.append(computer_10traps_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
-        EE_20traps_indep.append(computer_20traps_indep.energy_efficiency(D0, alpha, beta_20, N_gates=Ng, N_samples=100))
-    plt.plot(D_values, EE_10traps_no_indep, label="10 traps, no independent gates")
-    plt.plot(D_values, EE_10traps_indep, label="10 traps, independent gates")
-    plt.plot(D_values, EE_20traps_indep, label="20 traps, independent gates")
-    plt.xlabel(r"Final Circuit Depth, $D$")
-    plt.ylabel(r"Energy Efficiency, $EE$ (computations/J)")
-    plt.xlim(0, max(D_values))
-    plt.yscale('log')
-    plt.legend()
-    plt.show()
-
 def plot_comparison_traps():
-    computer_1trap = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=1, independent_gates=False)
+    computer_1trap = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=1, independent_gates=False)
 
-    N_components_10traps = [N_image, N_HVAC, N_magnetic_field, 10, N_gate_drive, N_passive_control, N_control_desktop]
-    computer_10traps_no_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
-    computer_10traps_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
+    N_components_indep = [N_image, N_HVAC, N_magnetic_field, 2, N_gate_drive, N_passive_control, N_control_desktop]
+    computer_10traps_no_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
+    computer_10traps_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_indep, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
 
     fig, axs = plt.subplots(1,3, figsize=(15,4), sharey=True)
 
     Ng_per_layer_vals = [1, 10, 50]
 
-    beta_1 = 0
+    beta_1 = 0.9
     beta_10 = beta_1/10
 
     for i, Ng_per_layer in enumerate(Ng_per_layer_vals):
@@ -231,28 +198,31 @@ def plot_comparison_traps():
 
         D_values = np.arange(1, 1010, 5)
         EE_1trap_worst = []
-        EE_10traps_no_indep= []
+        EE_10traps_no_indep_alpha0= []
+        EE_10traps_no_indep_alpha1= []
         EE_10traps_indep = []
         for D0 in D_values:
             Ng = D0*Ng_per_layer
             EE_1trap_worst.append(computer_1trap.energy_efficiency(D0, alpha, beta_1, N_gates=Ng, N_samples=100))
-            EE_10traps_no_indep.append(computer_10traps_no_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
+            EE_10traps_no_indep_alpha0.append(computer_10traps_no_indep.energy_efficiency(D0, 0, beta_10, N_gates=Ng, N_samples=100))
+            EE_10traps_no_indep_alpha1.append(computer_10traps_no_indep.energy_efficiency(D0, 1, beta_10, N_gates=Ng, N_samples=100))
             EE_10traps_indep.append(computer_10traps_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
 
 
         axs[i].plot(D_values, EE_1trap_worst, label=r"1 trap", color='royalblue')
-        axs[i].plot(D_values, EE_10traps_no_indep, color='yellowgreen')
+        axs[i].plot(D_values, EE_10traps_no_indep_alpha0, color='yellowgreen')
+        axs[i].plot(D_values, EE_10traps_no_indep_alpha1, color='yellowgreen')
         axs[i].plot(D_values, EE_10traps_indep, label=r"10 traps, independent gates", color='darkgreen', linestyle='--')
-        axs[i].fill_between(D_values, EE_10traps_indep, EE_10traps_no_indep, color='yellowgreen', alpha=0.5, label=r"10 traps, no independent gates ($\alpha=[0,1]$)")
+        axs[i].fill_between(D_values, EE_10traps_no_indep_alpha0, EE_10traps_no_indep_alpha1, color='yellowgreen', alpha=0.5, label=r"10 traps, no independent gates ($\alpha=[0,1]$)")
 
         axs[i].set_xlabel(r"Pre-routing circuit depth, $D_{0}$")
         axs[i].set_xlim(0, max(D_values))
         axs[i].set_yscale('log')
 
-    axs[0].text(320, 8.5e-6, r"a) $<N_{\rm{g}}^{\rm{layer}}>=1$", fontsize=14)
-    axs[1].text(320, 8.5e-6, r"b) $<N_{\rm{g}}^{\rm{layer}}>=10$", fontsize=14)
-    axs[2].text(320, 8.5e-6, r"c) $<N_{\rm{g}}^{\rm{layer}}>=50$", fontsize=14)
-    axs[0].set_ylim(1.1e-7, 1.5e-5)
+    axs[0].text(320, 3.5e-6, r"a) $<N_{\rm{g}}^{\rm{layer}}>=1$", fontsize=14)
+    axs[1].text(320, 3.5e-6, r"b) $<N_{\rm{g}}^{\rm{layer}}>=10$", fontsize=14)
+    axs[2].text(320, 3.5e-6, r"c) $<N_{\rm{g}}^{\rm{layer}}>=50$", fontsize=14)
+    axs[0].set_ylim(3.5e-10, 1.5e-5)
     axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
     axs[0].legend(fontsize=11, loc='lower left', fancybox=False, edgecolor='black')
 
@@ -260,11 +230,11 @@ def plot_comparison_traps():
 
 
 def plot_beta_tradeoff():
-    computer_1trap = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=1, independent_gates=False)
+    computer_1trap = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=1, independent_gates=False)
 
-    N_components_10traps = [N_image, N_HVAC, N_magnetic_field, 10, N_gate_drive, N_passive_control, N_control_desktop]
-    computer_10traps_no_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
-    computer_10traps_indep = TrappedIonsComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_10traps, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
+    N_components_indep = [N_image, N_HVAC, N_magnetic_field, 2, N_gate_drive, N_passive_control, N_control_desktop]
+    computer_10traps_no_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
+    computer_10traps_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_indep, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
 
     fig, axs = plt.subplots(1,3, figsize=(15,4), sharey=True)
 
@@ -276,19 +246,22 @@ def plot_beta_tradeoff():
     alpha = 1
     for i, Ng_per_layer in enumerate(Ng_per_layer_vals):
         EE_1trap = []
-        EE_10traps_no_indep= []
+        EE_10traps_no_indep_alpha0= []
+        EE_10traps_no_indep_alpha1=[]
         EE_10traps_indep = []
         for beta in beta_vals:
             beta_1 = beta
             beta_10 = beta_1/10
             Ng = D0*Ng_per_layer
             EE_1trap.append(computer_1trap.energy_efficiency(D0, alpha, beta_1, N_gates=Ng, N_samples=100))
-            EE_10traps_no_indep.append(computer_10traps_no_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
+            EE_10traps_no_indep_alpha0.append(computer_10traps_no_indep.energy_efficiency(D0, 0, beta_10, N_gates=Ng, N_samples=100))
+            EE_10traps_no_indep_alpha1.append(computer_10traps_no_indep.energy_efficiency(D0, 1, beta_10, N_gates=Ng, N_samples=100))
             EE_10traps_indep.append(computer_10traps_indep.energy_efficiency(D0, alpha, beta_10, N_gates=Ng, N_samples=100))
         axs[i].plot(beta_vals, EE_1trap, label=r"1 trap", color='royalblue')
-        axs[i].plot(beta_vals, EE_10traps_no_indep, color='yellowgreen')
+        axs[i].plot(beta_vals, EE_10traps_no_indep_alpha0, color='yellowgreen')
+        axs[i].plot(beta_vals, EE_10traps_no_indep_alpha1, color='yellowgreen')
         axs[i].plot(beta_vals, EE_10traps_indep, label=r"10 traps, independent gates", color='darkgreen', linestyle='--')
-        axs[i].fill_between(beta_vals, EE_10traps_indep, EE_10traps_no_indep, color='yellowgreen', alpha=0.5, label=r"10 traps, no independent gates ($\alpha=[0,1]$)")
+        axs[i].fill_between(beta_vals, EE_10traps_no_indep_alpha0, EE_10traps_no_indep_alpha1, color='yellowgreen', alpha=0.5, label=r"10 traps, no independent gates ($\alpha=[0,1]$)")
         axs[i].set_xlabel(r"Transport per layer ratio, $\beta$")
 
     axs[0].set_xscale('log')
