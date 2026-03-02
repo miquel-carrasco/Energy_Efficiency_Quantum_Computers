@@ -34,7 +34,10 @@ class Computer:
         types = set()
         for comp in self.list_components:
             types.add(comp.comp_type)
-        return list(types)
+        types = list(types)
+        types.insert(0, types.pop(types.index('Cooling/Vacuum')))
+        types.append(types.pop(types.index('Classical Processing')))
+        return types
     
     @property
     def type_groups_components(self) -> dict[str, list[str]]:
@@ -90,7 +93,8 @@ class Computer:
         for type in self.list_types_components:
             energy_dict[type] = sum([comp.P for comp in self.list_components if comp.comp_type == type])
         
-        return {k: v  for k,v in sorted(energy_dict.items(), key=lambda item: item[1], reverse=True)}        
+        # return {k: v  for k,v in sorted(energy_dict.items(), key=lambda item: item[1], reverse=True)}
+        return {k:v for k,v in energy_dict.items()}        
     
 
     @property
