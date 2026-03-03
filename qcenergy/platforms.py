@@ -257,13 +257,16 @@ class AtomBasedComputer(Computer):
 
 
     def final_circuit_depth(self, D0: int, alpha: float, N_gates: int) -> int:
-
-        if not self.independent_gates and N_gates > 1:
-            D_prima = self.no_indep_depth(D0, alpha)
+        
+        if D0 == 0:
+            return 0
         else:
-            D_prima = D0
-               
-        return N_gates / min(N_gates/D_prima, self.N_gatezones)
+            if not self.independent_gates and N_gates > 1:
+                D_prima = self.no_indep_depth(D0, alpha)
+            else:
+                D_prima = D0
+            
+            return N_gates / min(N_gates/D_prima, self.N_gatezones)
     
     def t_comp(self, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
 
