@@ -283,3 +283,84 @@ class AtomBasedComputer(Computer):
     def energy_efficiency(self, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
         
         return 1 / (self.t_comp(D0, alpha, beta, N_gates, N_samples) * self.P)
+
+
+class PhotonicComputer(Computer):
+    """
+    A photonic computer, chip-based with a Clement architecture.
+    """
+
+    def __init__(self,
+                Nq: int = 24,
+                components: list[Component] = [],
+                N_comp: list[int] = [], 
+                r_source: int = 100*10^6,
+                D_optical: int = 48,
+                eta_source =0.5,
+                eta_det = 0.95,
+                eta_dmx = 0.8,
+                eta_coup = 0.8,
+                eta_mzi = 0.9,
+                 graph_type: str = "All-to-all"
+                 ):
+        
+        self.Nq = Nq
+        self.components = components
+        self.N_comp = N_comp
+        self.list_components = self.assemble()
+        self.r_source = r_source
+        self.D_optical = D_optical
+        self.eta_source = eta_source
+        self.eta_det = eta_det
+        self.eta_dmx = eta_dmx
+        self.eta_coup = eta_coup
+        self.eta_mzi = eta_mzi
+        self.graph_type = graph_type
+
+    def eta_total(self) -> float:
+        """
+        Return the end-to-end transmissivity of the chip 
+        """
+        return self.eta_det*self.eta_source*self.eta_dmx*10**(-2*self.eta_coup/10)*10**(-2*self.D_optical*self.eta_mzi/10)
+    
+    def CoincRate(self, N_photons: int) -> float:
+            """
+            Return the coincidence rate for detecting n photons
+
+            Args:
+                N_photons (int): number of photons
+
+            Returns:
+                float: coincidence rate
+            """
+
+            return (N_photons/self.r_source)*self.eta_total()**(N_photons)
+    
+    def t_aglo(self,N_samples : int, N_photon: int, N_source : int ) -> float:
+            """
+            Return the time to perform an algorithm in seconds
+            Args:
+                N_photons (int): number of photons involved
+                N_samples (int): number of shots necessary to perform the algorithm
+                N_source (int): Number of single photon sources in the computer
+            """
+            eta_total = self.eta_total() #total transmission of the chip
+            t_detect = (N_photon/(N_source*self.r_source) )* 1/(eta_total**N_photon)
+            return N_samples*t_detect
+            
+
+
+    def energy_efficiency(self,N_samples : int, N_photon: int, N_source : int ) -> float:
+        """
+        Return the energy efficiency 
+        
+        Args:
+                N_photons (int): number of photons involved
+                N_samples (int): number of shots necessary to perform the algorithm
+                N_source (int): Number of single photon sources in the computer
+            """
+        t_algo = self.t_aglo(N_samples, N_photon, N_source)
+        tot_power = self.P
+
+        return 1/(t_algo*tot_power)
+    
