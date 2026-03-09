@@ -35,7 +35,7 @@ class Computer:
         for comp in self.list_components:
             types.add(comp.comp_type)
         types = list(types)
-        types.insert(0, types.pop(types.index('Cooling/Vacuum')))
+        types.insert(0, types.pop(types.index('Environmental Conditions')))
         types.append(types.pop(types.index('Classical Processing')))
         return types
     

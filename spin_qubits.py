@@ -44,15 +44,15 @@ Ni = [int(x) for x in Ni]
 
 T = 24*3600
 
-t_init_best = 0.1e-3
-t_init_worst = 1e-3
+t_reset_best = 0.1e-3
+t_reset_worst = 1e-3
 t_g_best = 10e-9
 t_g_worst = 100e-9
 t_meas = 10e-6
 
 
 def plot_power_breakdown():
-    computer = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, t_clock=t_g_best)
+    computer = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_reset=t_reset_best, t_meas=t_meas, t_clock=t_g_best)
     power_types = computer.power_per_types()
     power_components = computer.power_per_component()
 
@@ -98,17 +98,13 @@ def plot_power_breakdown():
 
 def crossbar_vs_planar_vs_linear_49_100():
 
-    fig, ax = plt.subplots(1,2, figsize=(10,4), sharey=True)
+    fig, ax = plt.subplots(1,1, figsize=(7,5), sharey=True)
     colors = colormaps['summer'].reversed()(np.linspace(0.4, 0.8, 2))
     D_values = np.arange(0, 2000, 5)
     EE_planar_49 = []
-    EE_planar_100 = []
     EE_crossbar_og_49 = []
-    EE_crossbar_og_100 = []
     EE_crossbar_red_49 = []
-    EE_crossbar_red_100 = []
     EE_linear_49 = []
-    EE_linear_100 = []
 
     n = 7
     Nq = n**2
@@ -125,24 +121,8 @@ def crossbar_vs_planar_vs_linear_49_100():
     components = [pulse_tube, dilution_unit, DC_control, BB_control, MW_control, redout_lockin, lna, rt_amplifier, classical_comp, chiller]
     Ni = [N_pt, N_du, N_DC_control, N_BB_control, N_MW_control, N_redout_lockin, N_lna, N_rt_amplifier, N_classical_comp, N_chill]
     Ni = [int(x) for x in Ni]
-    computer_49 = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, t_clock=t_g_best)
+    computer_49 = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_reset=t_reset_best, t_meas=t_meas, t_clock=t_g_best)
 
-    n = 10
-    Nq = n**2
-    pulse_tube , N_pt = Component('Pulse Tube', 9500, 'Cooling'), 1
-    dilution_unit, N_du = Component('Gas handling system', 2000, 'Cooling'), 1
-    chiller, N_chill = Component('Water cooler', 4600, 'Cooling'), 1
-    DC_control, N_DC_control = Component('DC Control', 0.5, 'Qubit Control'), 3*Nq - 2*math.ceil(math.sqrt(Nq))
-    BB_control, N_BB_control = Component('BB Control', 7.5, 'Qubit Control'), 3*Nq - 2*math.ceil(math.sqrt(Nq))
-    MW_control, N_MW_control = Component('MW Control', 24, 'Qubit Control'), Nq
-    redout_lockin, N_redout_lockin = Component('Lock-in Amplifier', 48, 'Qubit Control'), math.ceil(Nq/2)
-    lna, N_lna = Component('LNA', 0.11, 'Qubit Control'), math.ceil(Nq/2)
-    rt_amplifier, N_rt_amplifier = Component('RT Amplifier', 0.5, 'Qubit Control'), math.ceil(Nq/2)
-    classical_comp, N_classical_comp = Component('Classical Computers', 150, 'Classical Processing'), 2
-    components = [pulse_tube, dilution_unit, DC_control, BB_control, MW_control, redout_lockin, lna, rt_amplifier, classical_comp, chiller]
-    Ni = [N_pt, N_du, N_DC_control, N_BB_control, N_MW_control, N_redout_lockin, N_lna, N_rt_amplifier, N_classical_comp, N_chill]
-    Ni = [int(x) for x in Ni]
-    computer_100 = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, t_clock=t_g_best)
 
     eta = 0.9
 
@@ -151,31 +131,22 @@ def crossbar_vs_planar_vs_linear_49_100():
         #     print("2D, 49 qubits", computer_49.energy_efficiency(D0, eta , N_samples=1))
         #     print("2D, 100 qubits", computer_100.energy_efficiency(D0, eta, N_samples=1))
         EE_planar_49.append(computer_49.energy_efficiency(D0, eta, N_samples=1))
-        EE_planar_100.append(computer_100.energy_efficiency(D0, eta, N_samples=1))
+
 
 
     computer_49.graph_type = "Linear"
-    computer_100.graph_type = "Linear"
     Nq = 49
     Ni = [N_pt, N_du, 2*Nq-1, 2*Nq-1, Nq, math.ceil(math.sqrt(2*Nq)), math.ceil(math.sqrt(2*Nq)), math.ceil(math.sqrt(2*Nq)), N_classical_comp, N_chill]
     Ni = [int(x) for x in Ni]
     computer_49.N_comp = Ni
     computer_49.list_components = computer_49.assemble()
-    Nq = 100
-    Ni = [N_pt, N_du, 2*Nq-1, 2*Nq-1, Nq, math.ceil(math.sqrt(2*Nq)), math.ceil(math.sqrt(2*Nq)), math.ceil(math.sqrt(2*Nq)), N_classical_comp, N_chill]
-    Ni = [int(x) for x in Ni]
-    computer_49.N_comp = Ni
-    computer_100.N_comp = Ni
-    computer_100.list_components = computer_100.assemble()
     for D0 in D_values:
         # if D0 == 500:
         #     print("Linear, 49 qubits", computer_49.energy_efficiency(D0, eta, N_samples=1))
         #     print("Linear, 100 qubits", computer_100.energy_efficiency(D0, eta, N_samples=1))
         EE_linear_49.append(computer_49.energy_efficiency(D0, eta, N_samples=1))
-        EE_linear_100.append(computer_100.energy_efficiency(D0, eta, N_samples=1))
 
     computer_49.graph_type = "2D"
-    computer_100.graph_type = "2D"
     Nq = 49
     Ni = [N_pt, N_du, math.ceil(4*math.sqrt(2*Nq)+1), math.ceil(4*math.sqrt(2*Nq)+1), 1, math.ceil(math.sqrt(2*Nq)), math.ceil(math.sqrt(2*Nq)), math.ceil(math.sqrt(2*Nq)), N_classical_comp, N_chill]
     Ni = [int(x) for x in Ni]
@@ -186,59 +157,41 @@ def crossbar_vs_planar_vs_linear_49_100():
     Nq = 100
     Ni = [N_pt, N_du, math.ceil(4*math.sqrt(2*Nq)+1), math.ceil(4*math.sqrt(2*Nq)+1), 1, math.ceil(math.sqrt(2*Nq)), math.ceil(math.sqrt(2*Nq)), math.ceil(math.sqrt(2*Nq)), N_classical_comp, N_chill]
     Ni = [int(x) for x in Ni]
-    computer_100.t_clock = 250e-9
-    computer_100.t_meas = 10e-5
-    computer_100.N_comp = Ni
-    computer_100.list_components = computer_100.assemble()
+
     for D0 in D_values:
         # if D0 == 500:
         #     print("Crossbar, 49 qubits", computer_49.energy_efficiency(D0, eta, N_samples=1))
         #     print("Crossbar, 100 qubits", computer_100.energy_efficiency(D0, eta, N_samples=1))
         EE_crossbar_og_49.append(computer_49.energy_efficiency(D0, eta, N_samples=1))
-        EE_crossbar_og_100.append(computer_100.energy_efficiency(D0, eta, N_samples=1))
     
     computer_49.t_clock = 10e-9
     computer_49.t_meas = 10e-6
     computer_49.N_comp = Ni
-    computer_100.t_clock = 10e-9
-    computer_100.t_meas = 10e-6
-    computer_100.N_comp = Ni
     for D0 in D_values:
         # if D0 == 500:
         #     print("Crossbar, 49 qubits", computer_49.energy_efficiency(D0, eta, N_samples=1))
         #     print("Crossbar, 100 qubits", computer_100.energy_efficiency(D0, eta, N_samples=1))
         EE_crossbar_red_49.append(computer_49.energy_efficiency(D0, eta, N_samples=1))
-        EE_crossbar_red_100.append(computer_100.energy_efficiency(D0, eta, N_samples=1))
 
-    ax[0].set_title(r"(a) $N_{\mathrm{qubits}}=49$", fontsize=13)
-    ax[0].plot(D_values, EE_linear_49, label='Linear', color = colors[0])
-    ax[0].plot(D_values, EE_planar_49, label='2D', color = colors[1])
-    ax[0].plot(D_values, EE_crossbar_og_49, label=r'Crossbar ($t_{\rm{clock}}=250~\mathrm{ns}$, $t_{\rm{meas}}=100\;\mu\mathrm{s}$)', color = colors[1], linestyle='--')
-    ax[0].plot(D_values, EE_crossbar_red_49, label=r'Crossbar ($t_{\rm{clock}}=10~\mathrm{ns}$, $t_{\rm{meas}}=10\;\mu\mathrm{s}$)', color = colors[1], linestyle='-.')
+    ax.plot(D_values, EE_linear_49, label='Linear', color = "royalblue", zorder = 10)
+    ax.plot(D_values, EE_planar_49, label='2D', color = "yellowgreen")
+    ax.plot(D_values, EE_crossbar_og_49, label=r'Crossbar ($t_{\rm{clock}}=250~\mathrm{ns}$, $t_{\rm{meas}}=100\;\mu\mathrm{s}$)', color = "darkgreen")
+    ax.plot(D_values, EE_crossbar_red_49, label=r'Crossbar ($t_{\rm{clock}}=10~\mathrm{ns}$, $t_{\rm{meas}}=10\;\mu\mathrm{s}$)', color = "darkgreen", linestyle='--')
 
-    ax[1].set_title(r"(b) $N_{\mathrm{qubits}}=100$", fontsize=13)
-    ax[1].plot(D_values, EE_linear_100, color = colors[0])
-    ax[1].plot(D_values, EE_planar_100, color = colors[1])
-    ax[1].plot(D_values, EE_crossbar_og_100 , color = colors[1], linestyle='--')
-    ax[1].plot(D_values, EE_crossbar_red_100, color = colors[1], linestyle='-.')
 
-    ax[0].fill_between(D_values, EE_planar_49, EE_crossbar_red_49, color=colors[1], alpha=0.2)
-    ax[1].fill_between(D_values, EE_planar_100, EE_crossbar_red_100, color=colors[1], alpha=0.2)
-    ax[0].text(400, 0.35, r'$P^{\rm{2D}}-P^{\rm{crossbar}}\approx 1\mathrm{kW}$', fontsize=10, color='black', rotation=-9.5)
-    ax[1].text(400, 0.325, r'$P^{\rm{2D}}-P^{\rm{crossbar}}\approx 6\mathrm{kW}$', fontsize=10, color='black', rotation=-8)
-    ax[0].set_xlabel(r"Pre-routing Circuit Depth, $D_{0}$")
-    ax[1].set_xlabel(r"Pre-routing Circuit Depth, $D_{0}$")
-    ax[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
-    ax[0].set_xlim(0, 1000)
-    ax[1].set_xlim(0, 1000)
-    ax[0].set_ylim(1e-2, 0.68e0)
-    # ax[0].set_yscale('log')
-    ax[0].legend(fontsize=10, loc='upper right', fancybox=False, edgecolor='black', ncols=2)
+    ax.fill_between(D_values, EE_planar_49, EE_crossbar_red_49, color=colors[1], alpha=0.2)
+    ax.text(400, 0.363, r'$P^{\rm{2D}}-P^{\rm{crossbar}}\approx 1\mathrm{kW}$', fontsize=10, color='black', rotation=-9)
+    ax.set_xlabel(r"Pre-routing Circuit Depth, $D_{0}$")
+    ax.set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    ax.set_xlim(0, 1000)
+    ax.set_ylim(1e-2, 0.68e0)
+    # ax.set_yscale('log')
+    ax.legend(fontsize=10, loc='upper right', fancybox=False, edgecolor='black', ncols=2)
     fig.savefig("Figures/Spin_qubits/spin_qubits_crossbar_vs_planar_vs_linear.pdf", bbox_inches='tight')
     plt.close()
 
 def plot_D_and_Nsamples():
-    computer = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_init=t_init_best, t_meas=t_meas, t_clock=t_g_best)
+    computer = SolidStateComputer(components=components, N_comp=Ni, graph_type="2D", t_reset=t_reset_best, t_meas=t_meas, t_clock=t_g_best)
 
     fig, axs = plt.subplots(1, 2, figsize=(10,4), sharey=True)
 
@@ -322,4 +275,4 @@ def plot_D_and_Nsamples():
 
 
 if __name__ == "__main__":
-    plot_D_and_Nsamples()
+    crossbar_vs_planar_vs_linear_49_100()

@@ -188,7 +188,7 @@ def plot_power_breakdown():
     plt.close()
 
 
-def plot_periodic_vs_periodic_reload():
+def plot_periodic_vs_continuous_reload():
     computer_periodic = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=Ni_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_reconfig, t_transport=t_transport, 
                                             t_reload=t_reload, t_reload_freq=t_reload_freq, N_gatezones=2, independent_gates=True, periodic_reload=True)
     
@@ -209,24 +209,27 @@ def plot_periodic_vs_periodic_reload():
     N_gates_per_slice = 1
     N_samples = 1000
 
+    fig, ax = plt.subplots(figsize=(7,5))
+
     EE_periodic = []
     EE_continuous = []
     for D in D0:
         N_gates = D * N_gates_per_slice
         EE_periodic.append(computer_periodic.energy_efficiency(D, alpha, beta, N_gates, N_samples))
         EE_continuous.append(computer_continuous.energy_efficiency(D, alpha, beta, N_gates, N_samples))
-    plt.plot(D0, EE_periodic, label='Periodic Reload', color = 'yellowgreen')
-    plt.plot(D0, EE_continuous, label='Continuous Reload', color = 'royalblue')
+    ax.plot(D0, EE_periodic, label='Periodic Reload', color = 'royalblue')
+    ax.plot(D0, EE_continuous, label='Continuous Reload', color = 'yellowgreen')
 
-    plt.legend()
-    plt.yscale('log')
-    plt.xlim(0, max(D0))
-    plt.ylim(9.5e-8, 8.5e-6)
-    plt.legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
-    plt.show()
+    ax.set_xlabel(r"Final Circuit Depth, $D$")
+    ax.set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    ax.set_yscale('log')
+    ax.set_xlim(0, max(D0))
+    ax.set_ylim(9.5e-8, 8.5e-6)
+    ax.legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
+    fig.savefig("Figures/Neutral_atoms/neutral_atoms_periodic_vs_continuous_reload.pdf", bbox_inches='tight')
 
 
 
 
 if __name__ == "__main__":
-    plot_periodic_vs_periodic_reload()
+    plot_periodic_vs_continuous_reload()

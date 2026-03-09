@@ -1,5 +1,5 @@
 from qcenergy.components import Component
-from qcenergy.platforms import Computer
+from qcenergy.platforms import Computer, SolidStateComputer
 from qcenergy.algorithms import Algorithm, Circuit
 
 import numpy as np
@@ -22,7 +22,7 @@ params = {'axes.labelsize': 14,
          }
 plt.rcParams.update(params)
 
-Nq = 100
+Nq = 49
 N_lines = math.ceil(Nq/5)
 
 pulse_tube , N_pt = Component('Pulse Tube', 8000, 'Cooling'), 1
@@ -40,64 +40,15 @@ P_per_component = [comp.P*Ni[i] for i, comp in enumerate(components)]
 
 T = 24*3600
 
-t_init_passive = 200e-6
-t_init_active = 5000e-9
+t_reset_passive = 200e-6
+t_reset_active = 5000e-9
 t_1q = 25e-9
 t_2q= 50e-9
 t_meas = 1.6e-6
 
-computer = Computer(Nq = 100,
-                    components = components,
-                    N_comp = Ni,
-                    graph_type="2D",
-                    t_init = t_init_active,
-                    t_meas = t_meas,
-                    T_gates=[t_1q, t_2q])
 
-
-
-def plot_EE_vs_D(computer: Computer):
-
-    N_samples_values = [1, 10, 100, 1000, 10000]
-
-    D_values = np.arange(0, 10010, 10)
-    D_print = [1, 10, 100, 1000, 10000]
-
-    fig, ax1 = plt.subplots()
-    colors = colormaps['Reds'](np.linspace(0.3, 0.8, len(N_samples_values)))
-
-    for i, N_samples in enumerate(N_samples_values):
-        EE_list = []
-        N_pi_list = []
-        for D0 in D_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
-            if N_samples == 100 and D0 in D_print:
-                print(f"N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
-        ax1.plot(D_values, EE_list, color = colors[i])
-        ax1.text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N_samples}$", rotation = -6, fontsize=10)
-
-    ax1.set_xlabel(r"Final Circuit Depth, $D$")
-    ax1.set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
-    ax1.set_xlim(0, max(D_values))
-    ax1.set_yscale('log')
-    ax1.set_ylim(7e-6, 1.7e1)
-
-
-
-    ax2 = ax1.twinx()
-    ax2.plot(D_values, N_pi_list, alpha=0)
-    ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
-    ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
-    ax2.set_yscale('log')
-    ax2.set_ylim(7e-6*computer.P*T, 1.7e1*computer.P*T)
-
-    plt.savefig("Figures/Superconducting/superconducting_EE_vs_D.pdf", bbox_inches='tight')
-    plt.close()
-
-
-def plot_power_breakdown(computer: Computer):
+def plot_power_breakdown():
+    computer = SolidStateComputer(Nq = Nq, components=components, N_comp=Ni, t_reset=t_reset_active, t_clock=t_2q, t_meas=t_meas, graph_type='2D')
     power_types = computer.power_per_types()
     power_components = computer.power_per_component()
 
@@ -141,7 +92,8 @@ def plot_power_breakdown(computer: Computer):
     plt.close()
 
 
-def plot_D_D0(computer: Computer):
+def plot_D_D0():
+    computer = SolidStateComputer(Nq = Nq, components=components, N_comp=Ni, t_reset=t_reset_active, t_clock=t_2q, t_meas=t_meas, graph_type='2D')
     D0_values = np.arange(0, 2000, 10)
     eta_values = [0, 0.25, 0.5, 0.75, 1]
     colors = colormaps['summer'](np.linspace(0.2, 0.8, len(eta_values)))
@@ -154,10 +106,8 @@ def plot_D_D0(computer: Computer):
         D_values = []
         EE_values = []
         for D0 in D0_values:
-            alg = Algorithm(D=D0, eta=eta)
-            circuit = Circuit(algorithm=alg, avg_diameter=computer.avg_diameter)
-            D_values.append(circuit.D)
-            EE_values.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
+            D_values.append(computer.final_circuit_depth(D0 = D0, eta = eta))
+            EE_values.append(computer.energy_efficiency(D0 = D0, eta = eta, N_samples=N_samples))
 
         main_ax.plot(D0_values, EE_values, label=f"$\\eta={eta}$", color=colors[i])
         inset_ax.plot(D0_values, D_values, label=f"$\\eta={eta}$", color=colors[i])
@@ -181,40 +131,37 @@ def plot_D_D0(computer: Computer):
     plt.close()
 
 
-def reset_time(computer):
+def reset_time():
+    computer = SolidStateComputer(Nq = Nq, components=components, N_comp=Ni, t_reset=t_reset_active, t_clock=t_2q, t_meas=t_meas, graph_type='2D')
     D_values = np.arange(0, 10100, 50)
     N_samples = 100
 
-    computer.t_init = 0
+    computer.t_reset = 0
     EE_zero = []
     for D in D_values:
-        alg = Algorithm(D=D, eta=0)
-        EE_zero.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
+        EE_zero.append(computer.energy_efficiency(D0 = D, eta = 0, N_samples=N_samples))
     
 
-    computer.t_init = t_init_passive
+    computer.t_reset = t_reset_passive
     EE_passive = []
     for D in D_values:
-        alg = Algorithm(D=D, eta=0)
-        EE_passive.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
+        EE_passive.append(computer.energy_efficiency(D0 = D, eta = 0, N_samples=N_samples))
         if D == 100:
-            print(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-
+            print(computer.energy_efficiency(D0 = D, eta = 0, N_samples=N_samples))
     
-    computer.t_init = t_init_active
+    computer.t_reset = t_reset_active
     EE_active = []
     for D in D_values:
-        alg = Algorithm(D=D, eta=0)
-        EE_active.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
+        EE_active.append(computer.energy_efficiency(D0 = D, eta = 0, N_samples=N_samples))
     
     fig, ax = plt.subplots()
 
-    # ax.vlines(10*t_init_passive/(computer.T_clock), 0, 0.006, colors='k', linestyles='dashed')
+    # ax.vlines(10*t_reset_passive/(computer.T_clock), 0, 0.006, colors='k', linestyles='dashed')
     ax.text(6000, 0.0017, r'$D>> t_{\rm{reset}}^{\rm{act}} / t_{\rm{clock}}$', fontsize=12, rotation=-7, zorder = -1)
 
-    ax.plot(D_values, EE_active, color='limegreen', label = r'$t_{\rm{reset}}^{\rm{act}}=5 \;\mu s$', zorder = 1)
-    ax.plot(D_values, EE_passive, color='navy', label = r'$t_{\rm{reset}}^{\rm{pass}}=200 \;\mu s$', zorder = 3)
-    ax.plot(D_values, EE_zero, color='k', linestyle=':', alpha = 0.8, label = r'$t_{\rm{reset}}=0$', zorder = 2)
+    ax.plot(D_values, EE_active, color='yellowgreen', label = r'$t_{\rm{reset}}^{\rm{act}}=5 \;\mu s$', zorder = 1, linewidth=1.7)
+    ax.plot(D_values, EE_passive, color='royalblue', label = r'$t_{\rm{reset}}^{\rm{pass}}=200 \;\mu s$', zorder = 3, linewidth=1.7)
+    ax.plot(D_values, EE_zero, color='k', linestyle=':', alpha = 0.8, label = r'$t_{\rm{reset}}=0$', zorder = 2, linewidth=1.7)
 
     ax.legend(fontsize=12, fancybox = False, edgecolor='black', loc = "upper center")
 
@@ -226,8 +173,8 @@ def reset_time(computer):
     plt.savefig("Figures/Superconducting/superconducting_reset_time.pdf", bbox_inches='tight')
     plt.close()
 
-def plot_D_and_Nsamples(computer: Computer):
-
+def plot_D_and_Nsamples():
+    computer = SolidStateComputer(Nq = Nq, components=components, N_comp=Ni, t_reset=t_reset_active, t_clock=t_2q, t_meas=t_meas, graph_type='2D')
     fig, axs = plt.subplots(1, 2, figsize=(10,4), sharey=True)
 
     #FIG A)
@@ -242,11 +189,10 @@ def plot_D_and_Nsamples(computer: Computer):
         EE_list = []
         N_pi_list = []
         for D0 in D_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            EE_list.append(computer.energy_efficiency(D0 = D0, eta = 0, N_samples=N_samples))
+            N_pi_list.append(computer.N(D0 = D0, eta = 0, N_samples=N_samples))
             if N_samples == 100 and D0 in D_print:
-                print(f"N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+                print(f"N_samples={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[0].plot(D_values, EE_list, color = colors[i])
         axs[0].text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N_samples}$", rotation = -6.5, fontsize=10)
 
@@ -265,25 +211,21 @@ def plot_D_and_Nsamples(computer: Computer):
     ax2.set_yticklabels([])
 
     #QFT
-    alg = Algorithm(D=1584, eta = 0.3434)
-    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
-    EE_qft = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1000)
-    axs[0].scatter(circ.D, EE_qft, marker='d', color = 'saddlebrown', edgecolors = 'k',linewidth =1, zorder = 10, label = r"QFT ($D=4304, N_{\rm{samples}}=1000$)")
+    D0=1584
+    eta = 0.3434
+    EE_qft = computer.energy_efficiency(D0=D0, eta=eta, N_samples=1000)
+    axs[0].scatter(computer.final_circuit_depth(D0=D0, eta=eta), EE_qft, marker='d', color = 'saddlebrown', edgecolors = 'k',linewidth =1, zorder = 10, label = r"QFT ($D=4304, N_{\rm{samples}}=1000$)")
 
 
     #Adder
-    alg = Algorithm(D=1962, eta = 0.3507)
-    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
-    EE_adder = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1000)
-    axs[0].scatter(circ.D, EE_adder, marker='d', color = 'darkorchid', edgecolors = 'k',linewidth =1, zorder = 10, label = r"Adder ($D=5403, N_{\rm{samples}}=100$)")
+    EE_adder = computer.energy_efficiency(D0=1962, eta=0.3507, N_samples=1000)
+    axs[0].scatter(computer.final_circuit_depth(D0=1962, eta=0.3507), EE_adder, marker='d', color = 'darkorchid', edgecolors = 'k',linewidth =1, zorder = 10, label = r"Adder ($D=5403, N_{\rm{samples}}=100$)")
 
 
     #ISING
     D_ising = 3 + (2+Nq-1)
-    alg = Algorithm(D=D_ising, eta = 0)
-    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
-    EE_ising = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1e7)
-    axs[0].scatter(circ.D, EE_ising, marker='d', color = 'teal', edgecolors = 'k',linewidth =1, zorder = 10, label = r"ISING ($D=104, N_{\rm{samples}}=10^{7}$)")
+    EE_ising = computer.energy_efficiency(D0=D_ising, eta=0, N_samples=1e7)
+    axs[0].scatter(computer.final_circuit_depth(D0=D_ising, eta=0), EE_ising, marker='d', color = 'teal', edgecolors = 'k',linewidth =1, zorder = 10, label = r"ISING ($D=104, N_{\rm{samples}}=10^{7}$)")
 
 
     #FIG B)
@@ -296,11 +238,10 @@ def plot_D_and_Nsamples(computer: Computer):
         EE_list = []
         N_pi_list = []
         for N_samples in N_samples_values:
-            alg = Algorithm(D=D0, eta=0)
-            EE_list.append(computer.energy_efficiency(T = T, algorithm=alg, N_sampl=N_samples))
-            N_pi_list.append(computer.N(T = T, algorithm=alg, N_sampl=N_samples))
+            EE_list.append(computer.energy_efficiency(D0 = D0, eta = 0, N_samples=N_samples))
+            N_pi_list.append(computer.N(D0 = D0, eta = 0, N_samples=N_samples))
             if N_samples == 2500 and D0 in D_values:
-                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_samples={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[1].plot(N_samples_values, EE_list, color = colors[i])
   
     # axs[1].text(1750, 3e-2, r"$D=10$", fontsize=10, rotation=-6)
@@ -320,23 +261,17 @@ def plot_D_and_Nsamples(computer: Computer):
 
 
     #QFT
-    alg = Algorithm(D=1584, eta = 0.3434)
-    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
-    EE_qft = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1000)
+    EE_qft = computer.energy_efficiency(D0=1584, eta=0.3434, N_samples=1000)
     axs[1].scatter(1000, EE_qft, marker='d', color = 'saddlebrown', edgecolors = 'k',linewidth =1, zorder = 10, label = r"QFT ($D=4304, N_{\rm{samples}}=1000$)")
 
 
     #Adder
-    alg = Algorithm(D=1962, eta = 0.3507)
-    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
-    EE_adder = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1000)
+    EE_adder = computer.energy_efficiency(D0=1962, eta=0.3507, N_samples=1000)
     axs[1].scatter(1000, EE_adder, marker='d', color = 'darkorchid', edgecolors = 'k',linewidth =1, zorder = 10, label = r"Adder ($D=5403, N_{\rm{samples}}=1000$)")
 
 
     #ISING
-    alg = Algorithm(D=D_ising, eta = 0)
-    circ = Circuit(algorithm=alg, avg_diameter = computer.avg_diameter)
-    EE_ising = computer.energy_efficiency(T=T, algorithm=alg, N_sampl=1e7)
+    EE_ising = computer.energy_efficiency(D0=D_ising, eta=0, N_samples=1e7)
     axs[1].scatter(1e7, EE_ising, marker='d', color = 'teal', edgecolors = 'k',linewidth =1, zorder = 10, label = r"ISING ($D=104, N_{\rm{samples}}=10^{7}$)")
 
     axs[1].legend(fontsize=10, loc='upper right', fancybox=False, edgecolor='black')
@@ -358,9 +293,4 @@ def plot_D_and_Nsamples(computer: Computer):
 
 
 if __name__ == "__main__":
-    # plot_EE_vs_D(computer)
-    # plot_D_D0(computer)
-    # reset_time(computer)
-    # plot_power_breakdown(computer)
-    # print(computer.P, computer.P*3600*24/1000000)
-    plot_D_and_Nsamples(computer)
+    reset_time()

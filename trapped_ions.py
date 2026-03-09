@@ -31,7 +31,7 @@ chiller, N_chill = Component('Chiller', 2000, 'Environmental Conditions'), 1
 image_system, N_image = Component('Image System', 100, 'Qubit Control'), 1
 HVAC, N_HVAC = Component('HVAC', 7500, 'Environmental Conditions'), 1
 magnetic_field_generation, N_magnetic_field = Component('Magnetic Field Generation', 1, 'Qubit Control'), 1
-active_control, N_active_control = Component('Active Control System', 100, 'Qubit Control'), N_gatezones
+active_control, N_active_control = Component('Active Control System', 100, 'Qubit Control'), 1
 gate_drive, N_gate_drive = Component('Gate Drive', 800, 'Qubit Control'), 1
 passive_control, N_passive_control = Component('Passive Control System', 200, 'Qubit Control'), 1
 control_desktop, N_control_desktop = Component('Control Desktop', 150, 'Classical Processing'), 1
@@ -57,7 +57,6 @@ def plot_power_breakdown():
 
     power_types = computer.power_per_types()
     power_components = computer.power_per_component()
-
     width = 1
 
     fig, ax = plt.subplots()
@@ -100,7 +99,7 @@ def plot_power_breakdown():
 def plot_D_and_Nsamples():
     computer = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=N_gatezones, independent_gates=False)
     alpha = 0 #No increase in depth due to non-indep gates
-    beta = 1 #All layers require transport
+    beta = 1
     print(computer.P)
     fig, axs = plt.subplots(1, 2, figsize=(10,4), sharey=True)
 
@@ -118,8 +117,8 @@ def plot_D_and_Nsamples():
         for D0 in D_values:
             EE_list.append(computer.energy_efficiency(D0, alpha, beta, N_gates=D0, N_samples=N_samples))
             N_pi_list.append(computer.N_pi(t=T, D0=D0, alpha=alpha, beta=beta, N_gates=D0, N_samples=N_samples))
-            if N_samples == 100 and D0 in D_print:
-                print(f"N_samples={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
+            if N_samples == 1 and D0 in D_print:
+                print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_samples={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[0].plot(D_values, EE_list, color = colors[i])
         axs[0].text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N_samples}$", rotation = -6, fontsize=10)
 
@@ -150,7 +149,7 @@ def plot_D_and_Nsamples():
         for N_samples in N_samples_values:
             EE_list.append(computer.energy_efficiency(D0, alpha, beta, N_gates=D0, N_samples=N_samples))
             N_pi_list.append(computer.N_pi(t=T, D0=D0, alpha=alpha, beta=beta, N_gates=D0, N_samples=N_samples))
-            if N_samples == 2500 and D0 in D_values:
+            if N_samples == 1 and D0 in D_values:
                 print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_samples={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[1].plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
         axs[1].text(2200, EE_list[-1]*5, rf"$D={D0}$", rotation = -6, fontsize=10)
@@ -185,11 +184,11 @@ def plot_comparison_traps():
     computer_10traps_no_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
     computer_10traps_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_indep, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_mult_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
 
-    fig, axs = plt.subplots(1,3, figsize=(15,4), sharey=True)
+    fig, axs = plt.subplots(1,3, figsize=(13,4), sharey=True)
 
     Ng_per_layer_vals = [1, 10, 50]
 
-    beta_1 = 0.9
+    beta_1 = 0.5
     beta_10 = beta_1/10
 
     for i, Ng_per_layer in enumerate(Ng_per_layer_vals):
@@ -225,6 +224,8 @@ def plot_comparison_traps():
     axs[0].set_ylim(3.5e-10, 1.5e-5)
     axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
     axs[0].legend(fontsize=11, loc='lower left', fancybox=False, edgecolor='black')
+
+    fig.subplots_adjust(wspace=0.05)
 
     fig.savefig(f"Figures/Trapped_ions/trapped_ions_comparison_traps_beta1={beta_1}.pdf", bbox_inches='tight')
 
