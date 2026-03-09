@@ -231,7 +231,7 @@ class AtomBasedComputer(Computer):
                  t_clock: float = 0.0,
                  t_transport: float = 0.0,
                  t_reload: float = 0.0,
-                 t_reload_freq: float = 0.0,
+                 t_reload_freq: int = 0,
                  N_gatezones: int = 1,
                  independent_gates: bool = False,
                  periodic_reload: bool = False
@@ -273,9 +273,9 @@ class AtomBasedComputer(Computer):
         if not self.periodic_reload:
             return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples
         else:
-            t_factor = (self.t_reload_freq + self.t_reload) / self.t_reload_freq
-            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples*t_factor
-    
+            extra_reload_time = math.floor(N_samples/self.t_reload_freq)*self.t_reload
+            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples + extra_reload_time
+
     def N_pi(self, t: float, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
         
         return t / self.t_comp(D0, alpha, beta, N_gates, N_samples)
