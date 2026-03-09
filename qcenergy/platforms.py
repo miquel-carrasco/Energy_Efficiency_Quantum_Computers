@@ -321,7 +321,7 @@ class PhotonicComputer(Computer):
         """
         Return the end-to-end transmissivity of the chip 
         """
-        return self.eta_det*self.eta_source*self.eta_dmx*10**(-2*self.eta_coup/10)*10**(-2*self.D_optical*self.eta_mzi/10)
+        return self.eta_det*self.eta_source*self.eta_dmx*10**(-2*self.eta_coup/10)*10**(-self.D_optical*self.eta_mzi/10)
     
     def CoincRate(self, N_photons: int) -> float:
             """
