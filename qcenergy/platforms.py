@@ -265,7 +265,6 @@ class AtomBasedComputer(Computer):
                 D_prima = self.no_indep_depth(D0, alpha)
             else:
                 D_prima = D0
-            
             return N_gates / min(N_gates/D_prima, self.N_gatezones)
     
     def t_comp(self, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
@@ -273,7 +272,8 @@ class AtomBasedComputer(Computer):
         if not self.periodic_reload:
             return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples
         else:
-            extra_reload_time = math.floor(N_samples/self.t_reload_freq)*self.t_reload
+            N_reload = math.ceil(N_samples/self.t_reload_freq)
+            extra_reload_time = N_reload*self.t_reload
             return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples + extra_reload_time
 
     def N_pi(self, t: float, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
