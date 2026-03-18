@@ -256,33 +256,38 @@ class AtomBasedComputer(Computer):
         return D0 + math.ceil(D0*alpha) 
 
 
-    def final_circuit_depth(self, D0: int, alpha: float, N_gates: int) -> int:
+    def final_circuit_depth(self, D0: int, alpha: float, N_gates_layer: int) -> int:
         
+
         if D0 == 0:
             return 0
         else:
-            if not self.independent_gates and N_gates > 1:
-                D_prima = self.no_indep_depth(D0, alpha)
+            if N_gates_layer <= self.N_gatezones: 
+                D = D0
             else:
-                D_prima = D0
-            return N_gates / min(N_gates/D_prima, self.N_gatezones)
+                D = math.ceil(N_gates_layer/self.N_gatezones)*D0
+            if not self.independent_gates and N_gates_layer > 1 and self.N_gatezones > 1:
+                return self.no_indep_depth(D, alpha)
+            else:
+                return  D
     
-    def t_comp(self, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
-
+    def t_comp(self, D0: int, alpha: float, beta: float, N_gates_layer: int, N_samples: int) -> float:
+        if not self.independent_gates:
+            beta = beta/(1 + alpha)
         if not self.periodic_reload:
-            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples
+            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates_layer)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates_layer)*beta)*N_samples
         else:
             N_reload = math.ceil(N_samples/self.t_reload_freq)
             extra_reload_time = N_reload*self.t_reload
-            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates)*beta)*N_samples + extra_reload_time
+            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates_layer)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates_layer)*beta)*N_samples + extra_reload_time
 
-    def N_pi(self, t: float, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
+    def N_pi(self, t: float, D0: int, alpha: float, beta: float, N_gates_layer: int, N_samples: int) -> float:
         
-        return t / self.t_comp(D0, alpha, beta, N_gates, N_samples)
+        return t / self.t_comp(D0, alpha, beta, N_gates_layer, N_samples)
 
-    def energy_efficiency(self, D0: int, alpha: float, beta: float, N_gates: int, N_samples: int) -> float:
+    def energy_efficiency(self, D0: int, alpha: float, beta: float, N_gates_layer: int, N_samples: int) -> float:
         
-        return 1 / (self.t_comp(D0, alpha, beta, N_gates, N_samples) * self.P)
+        return 1 / (self.t_comp(D0, alpha, beta, N_gates_layer, N_samples) * self.P)
 
 
 class PhotonicComputer(Computer):
@@ -321,7 +326,7 @@ class PhotonicComputer(Computer):
         """
         Return the end-to-end transmissivity of the chip 
         """
-        return self.eta_det*self.eta_source*self.eta_dmx*10**(-2*self.eta_coup/10)*10**(-self.D_optical*self.eta_mzi/10)
+        return self.eta_det*self.eta_source*self.eta_dmx*10**(-2*self.eta_coup/10)*10**(-2*self.D_optical*self.eta_mzi/10)
     
     def CoincRate(self, N_photons: int) -> float:
             """

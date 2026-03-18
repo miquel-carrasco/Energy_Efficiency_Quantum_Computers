@@ -170,7 +170,7 @@ computerEOLN = PhotonicComputer(Nq = N_photon,
                     eta_mzi = eta_mzi_EOLN)
 
 eta_coup_EOBTO = 0.127
-eta_mzi_EOBTO = 0.3
+eta_mzi_EOBTO = 0.21
 
 pulse_tube , N_pt = Component('Pulse Tube', 1500, 'Cooling'), math.ceil(2*N_photon/25)
 laser, N_laser = Component('Laser', 4, 'Qubit Control'), 1
@@ -338,7 +338,7 @@ def plot_EE_vs_Nphoton(N_samples):
             EE_list.append(computer.energy_efficiency(N_samples =N, N_photon= computer.Nq, N_source =1))
 
         ax1.plot(photon, EE_list, color = colors[j])
-        ax1.text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N}$", rotation = -6, fontsize=10)
+        # ax1.text(48, EE_list[-1]*2.5, rf"$N_{{samples}}={N}$", rotation = -6, fontsize=10)
 
     ax1.set_xlabel(r"$N_{{photon}}$")
     ax1.set_ylabel(r"Energy efficiency")
@@ -352,6 +352,6 @@ def plot_EE_vs_Nphoton(N_samples):
 
 if __name__ == "__main__":
     #plot_EE_vs_Nsamp([computer1,computer2,computer3,computer4])
-    #plot_EE_vs_comp([computer2,computerEOLN,computerEOBTO])
+    plot_EE_vs_comp([computer2,computerEOLN,computerEOBTO])
     #plot_power_breakdown(computer2)
-    plot_EE_vs_Nphoton([100,10000,100000000000])
+    # plot_EE_vs_Nphoton([100,10000,100000000000])
