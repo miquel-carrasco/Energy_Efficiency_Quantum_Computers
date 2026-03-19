@@ -1,5 +1,5 @@
 from qcenergy.components import Component
-from qcenergy.graphs import expander_graph, ND_graph, linear
+from qcenergy.graphs import linear, circular, square, heavy_hex
 from qcenergy.algorithms import Algorithm, Circuit
 import math
 """
@@ -142,70 +142,70 @@ class SolidStateComputer(Computer):
         """
         if self.graph_type == "All-to-all":
             return 1.0
-        elif self.graph_type == "Expander":
-            return expander_graph(self.Nq)
-        elif self.graph_type == "2D":
-            return ND_graph(self.Nq, 2)
-        elif self.graph_type == "3D":
-            return ND_graph(self.Nq, 3)
         elif self.graph_type == "Linear":
             return linear(self.Nq)
+        elif self.graph_type == "Circular":
+            return circular(self.Nq, 2)
+        elif self.graph_type == "Square":
+            return square(self.Nq, 3)
+        elif self.graph_type == "Heavy-hex":
+            return heavy_hex(self.Nq)
         else:
-            raise ValueError(f"Unknown graph type: {self.graph_type}")
+            raise ValueError(f"Unknown graph type: {self.graph_type}. Try: All-to-all, Linear, Circular, Square or Heavy-hex")
     
-    def final_circuit_depth(self, D0: int, eta: float) -> int:
+    def final_circuit_depth(self, D0: int, alpha: float) -> int:
         """
         Return the final depth of the circuit after compilation.
 
         Args:
             D0 (int): initial depth of the circuit.
-            eta (float): overhead factor for routing.
+            alpha (float): overhead factor for routing.
 
         Returns:
             int: final depth of the circuit.
         """
         
-        return D0*(1 + eta*math.ceil((self.avg_diameter-1)/2))
+        return D0*(1 + 3*alpha*math.ceil((self.avg_diameter-1)/2))
 
-    def t_comp(self, D0: int, eta: float, N_samples: float) -> float:
+    def t_comp(self, D0: int, alpha: float, N_samples: float) -> float:
         """
         Return the computation time for a given algorithm.
 
         Args:
             D0 (int): initial depth of the circuit.
-            eta (float): overhead factor for routing.
+            alpha (float): overhead factor for routing.
             N_samples (float): number of samples.
 
         Returns:
             float: computation time.
         """
-        D = self.final_circuit_depth(D0, eta)
+        D = self.final_circuit_depth(D0, alpha)
         return (self.t_reset + D*self.t_clock + self.t_meas)*N_samples
         
     
-    def N_pi(self, t: float, D0: int, eta: float, N_samples: float) -> float:
+    def N_pi(self, t: float, D0: int, alpha: float, N_samples: float) -> float:
         """
         Return the number of computations that can be performed in time T.
 
         Args:
             t (float): time in seconds.
             D0 (int): initial depth of the circuit.
-            eta (float): overhead factor for routing.
+            alpha (float): overhead factor for routing.
             N_sampl (float): number of samples.
 
         Returns:
             float: number of computations.
         """
 
-        return t / self.t_comp(D0, eta, N_samples)
+        return t / self.t_comp(D0, alpha, N_samples)
 
-    def energy_efficiency(self, D0: int, eta: float, N_samples: float) -> float:
+    def energy_efficiency(self, D0: int, alpha: float, N_samples: float) -> float:
         """
         Return the energy efficiency of the computer.
 
         Args:
             D0 (int): initial depth of the circuit.
-            eta (float): overhead factor for routing.
+            alpha (float): overhead factor for routing.
             N_sampl (float): number of samples.
 
             T_list (dict): list of computation times for each component.
@@ -214,7 +214,7 @@ class SolidStateComputer(Computer):
             float: energy efficiency.
         """
 
-        return 1 / (self.t_comp(D0, eta, N_samples) * self.P)
+        return 1 / (self.t_comp(D0, alpha, N_samples) * self.P)
 
 
 
@@ -271,23 +271,23 @@ class AtomBasedComputer(Computer):
             else:
                 return  D
     
-    def t_comp(self, D0: int, alpha: float, beta: float, N_gates_layer: int, N_samples: int) -> float:
+    def t_comp(self, D0: int, alpha: float, balpha: float, N_gates_layer: int, N_samples: int) -> float:
         if not self.independent_gates:
-            beta = beta/(1 + alpha)
+            balpha = balpha/(1 + alpha)
         if not self.periodic_reload:
-            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates_layer)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates_layer)*beta)*N_samples
+            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates_layer)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates_layer)*balpha)*N_samples
         else:
             N_reload = math.ceil(N_samples/self.t_reload_freq)
             extra_reload_time = N_reload*self.t_reload
-            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates_layer)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates_layer)*beta)*N_samples + extra_reload_time
+            return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates_layer)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates_layer)*balpha)*N_samples + extra_reload_time
 
-    def N_pi(self, t: float, D0: int, alpha: float, beta: float, N_gates_layer: int, N_samples: int) -> float:
+    def N_pi(self, t: float, D0: int, alpha: float, balpha: float, N_gates_layer: int, N_samples: int) -> float:
         
-        return t / self.t_comp(D0, alpha, beta, N_gates_layer, N_samples)
+        return t / self.t_comp(D0, alpha, balpha, N_gates_layer, N_samples)
 
-    def energy_efficiency(self, D0: int, alpha: float, beta: float, N_gates_layer: int, N_samples: int) -> float:
+    def energy_efficiency(self, D0: int, alpha: float, balpha: float, N_gates_layer: int, N_samples: int) -> float:
         
-        return 1 / (self.t_comp(D0, alpha, beta, N_gates_layer, N_samples) * self.P)
+        return 1 / (self.t_comp(D0, alpha, balpha, N_gates_layer, N_samples) * self.P)
 
 
 class PhotonicComputer(Computer):
@@ -301,11 +301,11 @@ class PhotonicComputer(Computer):
                 N_comp: list[int] = [], 
                 r_source: int = 100*10^6,
                 D_optical: int = 48,
-                eta_source =0.5,
-                eta_det = 0.95,
-                eta_dmx = 0.8,
-                eta_coup = 0.8,
-                eta_mzi = 0.9,
+                alpha_source =0.5,
+                alpha_det = 0.95,
+                alpha_dmx = 0.8,
+                alpha_coup = 0.8,
+                alpha_mzi = 0.9,
                  graph_type: str = "All-to-all"
                  ):
         
@@ -315,18 +315,18 @@ class PhotonicComputer(Computer):
         self.list_components = self.assemble()
         self.r_source = r_source
         self.D_optical = D_optical
-        self.eta_source = eta_source
-        self.eta_det = eta_det
-        self.eta_dmx = eta_dmx
-        self.eta_coup = eta_coup
-        self.eta_mzi = eta_mzi
+        self.alpha_source = alpha_source
+        self.alpha_det = alpha_det
+        self.alpha_dmx = alpha_dmx
+        self.alpha_coup = alpha_coup
+        self.alpha_mzi = alpha_mzi
         self.graph_type = graph_type
 
-    def eta_total(self) -> float:
+    def alpha_total(self) -> float:
         """
         Return the end-to-end transmissivity of the chip 
         """
-        return self.eta_det*self.eta_source*self.eta_dmx*10**(-2*self.eta_coup/10)*10**(-2*self.D_optical*self.eta_mzi/10)
+        return self.alpha_det*self.alpha_source*self.alpha_dmx*10**(-2*self.alpha_coup/10)*10**(-2*self.D_optical*self.alpha_mzi/10)
     
     def CoincRate(self, N_photons: int) -> float:
             """
@@ -339,7 +339,7 @@ class PhotonicComputer(Computer):
                 float: coincidence rate
             """
 
-            return (N_photons/self.r_source)*self.eta_total()**(N_photons)
+            return (N_photons/self.r_source)*self.alpha_total()**(N_photons)
     
     def t_aglo(self,N_samples : int, N_photon: int, N_source : int ) -> float:
             """
@@ -349,8 +349,8 @@ class PhotonicComputer(Computer):
                 N_samples (int): number of shots necessary to perform the algorithm
                 N_source (int): Number of single photon sources in the computer
             """
-            eta_total = self.eta_total() #total transmission of the chip
-            t_detect = (N_photon/(N_source*self.r_source) )* 1/(eta_total**N_photon)
+            alpha_total = self.alpha_total() #total transmission of the chip
+            t_detect = (N_photon/(N_source*self.r_source) )* 1/(alpha_total**N_photon)
             return N_samples*t_detect
             
 
