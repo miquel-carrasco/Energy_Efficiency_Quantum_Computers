@@ -323,13 +323,8 @@ class PhotonicComputer(Computer):
                 eta_dmx = 0.8,
                 eta_coup = 0.8,
                 eta_mzi = 0.9,
-                eta_source =0.5,
-                eta_det = 0.95,
-                eta_dmx = 0.8,
-                eta_coup = 0.8,
-                eta_mzi = 0.9,
-                 graph_type: str = "All-to-all"
-                 ):
+                graph_type: str = "All-to-all"
+                ):
         
         self.Nq = Nq
         self.components = components
@@ -337,11 +332,6 @@ class PhotonicComputer(Computer):
         self.list_components = self.assemble()
         self.r_source = r_source
         self.D_optical = D_optical
-        self.eta_source = eta_source
-        self.eta_det = eta_det
-        self.eta_dmx = eta_dmx
-        self.eta_coup = eta_coup
-        self.eta_mzi = eta_mzi
         self.eta_source = eta_source
         self.eta_det = eta_det
         self.eta_dmx = eta_dmx
@@ -384,7 +374,7 @@ class PhotonicComputer(Computer):
 
             return (N_photons/self.r_source)*self.eta_total()**(N_photons)
     
-    def t_aglo(self,N_samples : int, N_photon: int, N_source : int ) -> float:
+    def t_algo(self,N_samples : int, N_photon: int, N_source : int ) -> float:
             """
             Return the time to perform an algorithm in seconds
             Args:
@@ -407,7 +397,7 @@ class PhotonicComputer(Computer):
                 N_samples (int): number of shots necessary to perform the algorithm
                 N_source (int): Number of single photon sources in the computer
             """
-        t_algo = self.t_aglo(N_samples, N_photon, N_source)
+        t_algo = self.t_algo(N_samples, N_photon, N_source)
         tot_power = self.P
 
         return 1/(t_algo*tot_power)
