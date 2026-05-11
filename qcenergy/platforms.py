@@ -323,6 +323,11 @@ class PhotonicComputer(Computer):
                 eta_dmx = 0.8,
                 eta_coup = 0.8,
                 eta_mzi = 0.9,
+                eta_source =0.5,
+                eta_det = 0.95,
+                eta_dmx = 0.8,
+                eta_coup = 0.8,
+                eta_mzi = 0.9,
                  graph_type: str = "All-to-all"
                  ):
         
@@ -332,6 +337,11 @@ class PhotonicComputer(Computer):
         self.list_components = self.assemble()
         self.r_source = r_source
         self.D_optical = D_optical
+        self.eta_source = eta_source
+        self.eta_det = eta_det
+        self.eta_dmx = eta_dmx
+        self.eta_coup = eta_coup
+        self.eta_mzi = eta_mzi
         self.eta_source = eta_source
         self.eta_det = eta_det
         self.eta_dmx = eta_dmx
