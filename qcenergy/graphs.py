@@ -14,6 +14,7 @@ def circular(Nq):
 def square(Nq):
     n = math.sqrt(Nq)
     if n%1 == 0:
+        n = int(n)
         graph = rx_gen.grid_graph(n, n)
         return rx.graph_unweighted_average_shortest_path_length(graph)
     else:

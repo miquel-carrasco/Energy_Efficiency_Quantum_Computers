@@ -7,7 +7,7 @@ from qiskit.converters import circuit_to_dag
 
 from qcenergy.algorithms import Algorithm, Circuit
 
-circ = QFT(num_qubits = 100)
+circ = QFT(num_qubits = 50)
 qc = transpile(circ, basis_gates=['cx', 'h', 'rx', 'z', 's'], optimization_level=0)
 
 dag = circuit_to_dag(qc)
@@ -22,7 +22,7 @@ for layer in dag.layers():
 print(f'QFT: D0={dag.depth()}, eta={layers_w_2q/dag.depth()}')
 
 
-circ = CDKMRippleCarryAdder(int(100/2)-1)
+circ = CDKMRippleCarryAdder(int(50/2)-1)
 qc = transpile(circ, basis_gates=['cx', 'h', 'rx', 'z', 's'], optimization_level=0)
 
 dag = circuit_to_dag(qc)

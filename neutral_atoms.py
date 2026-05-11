@@ -1,3 +1,5 @@
+from matplotlib.ticker import FuncFormatter
+
 from qcenergy.components import Component
 from qcenergy.platforms import Computer, AtomBasedComputer
 from qcenergy.algorithms import Algorithm, Circuit
@@ -7,6 +9,8 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
 from matplotlib import colormaps
 import math
+
+from spin_qubits import N_du, N_pt
 
 params = {'axes.labelsize': 14,
          'axes.titlesize': 15,
@@ -22,36 +26,30 @@ params = {'axes.labelsize': 14,
          }
 plt.rcParams.update(params)
 
-Nq = 100
+Nq = 400
 
-small_chiller, N_pt = Component('Small Chiller', 600, 'Cooling/Vacuum'), 4
-dilution_unit, N_du = Component('Large Chiller', 1000, 'Cooling/Vacuum'), 4
-
-
-hvac, N_hvac = Component('HVAC', 7500, 'Cooling/Vacuum'), 1
-vacuum_chamber, N_vacuum = Component('Vacuum Chamber', 100, 'Cooling/Vacuum'), 1
 trap_laser, N_trap_laser = Component('Trap Laser', 1500, 'Qubit Control'), 1
-amp_rydberg_1013, N_amp_rydberg_1013 = Component('Rydberg 1013nm Amplifier', 1000, 'Qubit Control'), 1
-pump_rydberg_420, N_pump_rydberg_420 = Component('Rydberg 420nm Pump Laser', 900, 'Qubit Control'), 1
-extra_lasers, N_extra_lasers = Component('Extra Lasers', 2550, 'Qubit Control'), 1
+rydberg_laser, N_rydberg_laser = Component('Rydberg Laser', 1900, 'Qubit Control'), 1
+other_lasers, N_other_lasers = Component('Other Lasers', 900*2+150*7, 'Qubit Control'), 1
+magnetic_field, N_magnetic_field = Component('Magnetic Field Generation', 1050, 'Qubit Control'), 1
 camera, N_camera = Component('Camera', 155, 'Qubit Control'), 1
+vacuum_chamber, N_vacuum = Component('Vacuum Chamber', 100, 'Environmental Conditions'), 1
+classical_comp, N_classical_comp = Component('Classical Computers', 150, 'Classical Processing'), 1
+hvac, N_hvac = Component('HVAC', 7500, 'Environmental Conditions'), 1
 other_electronics, N_other_electronics = Component('Other Electronics', 2000, 'Qubit Control'), 1
+small_chiller, N_small_chiller = Component('Laser Chillers (small)', 600, 'Qubit Control'), 5
+large_chiller, N_large_chiller = Component('Laser Chillers (large)', 1000, 'Qubit Control'), 2
 
-classical_comp, N_classical_comp = Component('Classical Computers', 250, 'Classical Processing'), 8
 
-components_cryo = [small_chiller, dilution_unit, hvac, vacuum_chamber, trap_laser, amp_rydberg_1013, 
-              pump_rydberg_420, extra_lasers, camera, other_electronics, classical_comp]
-components_no_cryo = [hvac, vacuum_chamber, trap_laser, amp_rydberg_1013, 
-              pump_rydberg_420, extra_lasers, camera, other_electronics, classical_comp]
-Ni = [N_pt, N_du, N_hvac, N_vacuum, N_trap_laser, N_amp_rydberg_1013, N_pump_rydberg_420, 
-      N_extra_lasers, N_camera, N_other_electronics, N_classical_comp]
-Ni_no_cryo = [N_hvac, N_vacuum, N_trap_laser, N_amp_rydberg_1013, N_pump_rydberg_420, 
-      N_extra_lasers, N_camera, N_other_electronics, N_classical_comp]
+components = [trap_laser, rydberg_laser, other_lasers, magnetic_field, camera, vacuum_chamber, classical_comp, hvac, other_electronics, small_chiller, large_chiller]
+
+Ni = [N_trap_laser, N_rydberg_laser, N_other_lasers, N_magnetic_field, N_camera, N_vacuum, N_classical_comp, N_hvac, N_other_electronics, N_small_chiller, N_large_chiller]
+
 
 T = 24*3600
 
 t_reload = 500e-3
-t_reload_freq = 80
+t_reload_freq = 2400
 t_reset = 10e-3
 t_2q= 150e-9
 t_1q = 10e-6
@@ -60,44 +58,42 @@ t_transport = 500e-6
 t_meas = 10e-3
 
 def plot_D_and_Nsamples():
-    computer = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=Ni_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_reconfig, t_transport=t_transport,
+    computer = AtomBasedComputer(Nq=Nq, components=components, N_comp=Ni, t_reset=t_reset, t_meas=t_meas, t_clock=t_reconfig, t_transport=t_transport,
                                  t_reload=t_reload, t_reload_freq=t_reload_freq, N_gatezones=20, independent_gates=False, periodic_reload=True)
-
-    fig, axs = plt.subplots(1, 2, figsize=(10,4), sharey=True)
+    fig, axs = plt.subplots(1, 2, figsize=(11,4.5), sharey=True)
     alpha = 0
-    beta = 1
+    beta = 0.25
 
     #FIG A)
     N_samples_values = [1, 10, 100, 1000, 10000]
 
     D_values = np.arange(0, 10010, 10)
-    D_print = [100, 1000, 10000]
+    D_print = [10, 100, 1000, 10000]
 
     colors = colormaps['Reds'](np.linspace(0.3, 0.8, len(N_samples_values)))
-
     for i, N_samples in enumerate(N_samples_values):
         EE_list = []
         N_pi_list = []
         for D0 in D_values:
-            EE_list.append(computer.energy_efficiency(D0, alpha, beta, N_gates=D0, N_samples=N_samples))
-            N_pi_list.append(computer.N_pi(t=T, D0=D0, alpha=alpha, beta=beta, N_gates=D0, N_samples=N_samples))
-            # if N_samples == 1 and D0 in D_print:
-                # print(f"N_sampl={N_samples}, D={D0}, computing time={computer.t_comp(D0=D0, alpha=alpha, beta=beta, N_gates=D0, N_samples=N_samples)}")
+            EE_list.append(computer.energy_efficiency(D0, alpha, beta, N_gates_layer=1, N_samples=N_samples))
+            N_pi_list.append(computer.N_pi(t=T, D0=D0, alpha=alpha, beta=beta, N_gates_layer=1, N_samples=N_samples))
+            if N_samples == 1 and D0 in D_print:
+                print(f"N_sampl={N_samples}, D={D0}, computing time={computer.t_comp(D0=D0, alpha=alpha, beta=beta, N_gates_layer=1, N_samples=N_samples)}")
         axs[0].plot(D_values, EE_list, color = colors[i])
-        axs[0].text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N_samples}$", rotation = -8, fontsize=10)
+        axs[0].text(4000, EE_list[-1]*2.3, rf"$N_{{samples}}={N_samples}$", rotation = -9, fontsize=10)
 
-    axs[0].set_xlabel(r"Final Circuit Depth, $D$")
-    axs[0].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+    axs[0].set_xlabel(r"Post-compilation Circuit Depth, $D$")
+    axs[0].set_ylabel(r"Energy Efficiency (computations/J)")
     axs[0].set_xlim(0, max(D_values))
     axs[0].set_yscale('log')
-    axs[0].set_ylim(9e-11, 1.5e-3)
+    axs[0].set_ylim(1.5e-10, 3e-3)
 
     axs[0].text(1000, 3e-4, "(a)", fontsize = 14)
 
     ax2 = axs[0].twinx()
     ax2.plot(D_values, N_pi_list, alpha=0)
     ax2.set_yscale('log')
-    ax2.set_ylim(9e-11*computer.P*T, 1.5e-3*computer.P*T)
+    ax2.set_ylim(1.5e-10*computer.P*T, 3e-3*computer.P*T)
     ax2.set_yticklabels([])
 
 
@@ -111,8 +107,8 @@ def plot_D_and_Nsamples():
         EE_list = []
         N_pi_list = []
         for N_samples in N_samples_values:
-            EE_list.append(computer.energy_efficiency(D0, alpha, beta, N_gates=D0, N_samples=N_samples))
-            N_pi_list.append(computer.N_pi(t=T, D0=D0, alpha=alpha, beta=beta, N_gates=D0, N_samples=N_samples))
+            EE_list.append(computer.energy_efficiency(D0, alpha, beta, N_gates_layer=1, N_samples=N_samples))
+            N_pi_list.append(computer.N_pi(t=T, D0=D0, alpha=alpha, beta=beta, N_gates_layer=1, N_samples=N_samples))
             # if N_samples == 2500 and D0 in D_values:
                 # print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[1].plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
@@ -129,10 +125,10 @@ def plot_D_and_Nsamples():
 
     ax2 = axs[1].twinx()
     ax2.plot(N_samples_values, N_pi_list, alpha=0)
-    ax2.set_ylabel(r"Number of Computations, $N_{\pi}$")
+    ax2.set_ylabel(r"Computations in 24 hours")
     ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
     ax2.set_yscale('log')
-    ax2.set_ylim(9e-11*computer.P*T, 1.5e-3*computer.P*T)
+    ax2.set_ylim(1.5e-10*computer.P*T, 3e-3*computer.P*T)
 
     # axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
 
@@ -143,8 +139,9 @@ def plot_D_and_Nsamples():
 
 
 def plot_power_breakdown():
-    computer = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=Ni_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_reconfig, t_transport=t_transport,
+    computer = AtomBasedComputer(Nq=Nq, components=components, N_comp=Ni, t_reset=t_reset, t_meas=t_meas, t_clock=t_reconfig, t_transport=t_transport,
                                  t_reload=t_reload, t_reload_freq=t_reload_freq, N_gatezones=1, independent_gates=False, periodic_reload=False)
+    print("Power: ", computer.P, " W")
     power_types = computer.power_per_types()
     power_components = computer.power_per_component()
 
@@ -189,54 +186,76 @@ def plot_power_breakdown():
 
 
 def plot_periodic_vs_continuous_reload():
-    computer_periodic = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=Ni_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_reconfig, t_transport=t_transport, 
+    computer_periodic = AtomBasedComputer(Nq=Nq, components=components, N_comp=Ni, t_reset=t_reset, t_meas=t_meas, t_clock=t_reconfig, t_transport=t_transport,
                                             t_reload=t_reload, t_reload_freq=t_reload_freq, N_gatezones=20, independent_gates=True, periodic_reload=True)
-    
 
-    components_cont_reload = [hvac, vacuum_chamber, trap_laser, amp_rydberg_1013, 
-                          pump_rydberg_420, extra_lasers, camera, other_electronics, classical_comp]
-    Ni_cont_reload = [N_hvac, N_vacuum, 2, N_amp_rydberg_1013, N_pump_rydberg_420, 
-                  N_extra_lasers, N_camera, N_other_electronics, N_classical_comp]
+    transport_laser, N_transport_laser = Component('Transport Laser', 350, 'Qubit Control'), 1
+    chiller_pump, N_chiller = Component('Chiller Pump', 1500, 'Environmental Conditions'), 1
+    ion_vacuum_pump, N_ion_vacuum_pump = Component('Ion Vacuum Pump', 600, 'Environmental Conditions'), 1
+    getter_vacuum_pump, N_getter_vacuum_pump = Component('Getter Vacuum Pump', 50, 'Environmental Conditions'), 2
 
-    computer_continuous = AtomBasedComputer(Nq=Nq, components=components_cont_reload, N_comp=Ni_cont_reload, t_reset=0, t_meas=t_meas, t_clock=t_reconfig, 
+
+    components_cont_reload = [trap_laser, rydberg_laser, other_lasers, magnetic_field, camera, vacuum_chamber, classical_comp, hvac, other_electronics, small_chiller, large_chiller, transport_laser, chiller_pump, ion_vacuum_pump, getter_vacuum_pump]
+
+    Ni_cont_reload = [N_trap_laser, N_rydberg_laser, N_other_lasers, N_magnetic_field, N_camera, N_vacuum, N_classical_comp, N_hvac, N_other_electronics, N_small_chiller, N_large_chiller, N_transport_laser, N_chiller, N_ion_vacuum_pump, N_getter_vacuum_pump]
+
+    computer_continuous = AtomBasedComputer(Nq=Nq, components=components_cont_reload, N_comp=Ni_cont_reload, t_reset=0, t_meas=t_meas, t_clock=t_reconfig,
                                             t_transport=t_transport, N_gatezones=20, independent_gates=True, periodic_reload=False)
 
-
-    D0 = [10, 100, 1000, 10000]
+    print("Power periodic reload: ", computer_periodic.P, " W")
+    print("Power continuous reload: ", computer_continuous.P, " W")
+    print("P_periodic/P_continuous: ", computer_periodic.P/computer_continuous.P)
+    N_samples_values = [1,10]
+    print_values = [0, 10, 100, 1000, 10000]
     alpha = 0
-    beta = 1
+    beta = 0.25
     N_gates_per_slice = 1
-    N_samples_values = np.arange(1, 10011, 10)
+    D0_values = np.arange(0, 10011, 1)
+    D0_values_1 = D0_values[D0_values<=t_reload_freq]
+    D0_values_2 = D0_values[D0_values>t_reload_freq]
 
     fig, ax = plt.subplots(figsize=(7,5))
 
-    for i, D in enumerate(D0):
-        EE_periodic = []
+    for i, N_samples in enumerate(N_samples_values):
+        EE_periodic_1 = []
+        EE_periodic_2 = []
         EE_continuous = []
-        for N_samples in N_samples_values:
-            N_gates = D * N_gates_per_slice
-            EE_periodic.append(computer_periodic.energy_efficiency(D, alpha, beta, N_gates, N_samples))
-            EE_continuous.append(computer_continuous.energy_efficiency(D, alpha, beta, N_gates, N_samples))
+        for D in D0_values:
+            if D in print_values:
+                print("t_continuous/t_periodic for D =",D, " is ", computer_continuous.t_comp(D0=D, alpha=alpha, beta=beta, N_gates_layer=N_gates_per_slice, N_samples=N_samples)/
+                      computer_periodic.t_comp(D0=D, alpha=alpha, beta=beta, N_gates_layer=N_gates_per_slice, N_samples=N_samples))
+                print("EE_periodic/EE_continuous for D =",D, " is ", computer_periodic.energy_efficiency(D, alpha, beta, N_gates_layer=N_gates_per_slice, N_samples=N_samples)/
+                        computer_continuous.energy_efficiency(D, alpha, beta, N_gates_layer=N_gates_per_slice, N_samples=N_samples))
+            if D<=t_reload_freq:
+                EE_periodic_1.append(computer_periodic.energy_efficiency(D, alpha, beta, N_gates_layer=N_gates_per_slice, N_samples=N_samples))
+            else: 
+                EE_periodic_2.append(computer_periodic.energy_efficiency(D, alpha, beta, N_gates_layer=N_gates_per_slice, N_samples=N_samples))
+            EE_continuous.append(computer_continuous.energy_efficiency(D, alpha, beta, N_gates_layer=N_gates_per_slice, N_samples=N_samples))
         if i == 0:
-            ax.plot(N_samples_values, EE_periodic, label='Periodic Reload', color = 'royalblue')
-            ax.plot(N_samples_values, EE_continuous, label='Continuous Reload', color = 'yellowgreen')
+            ax.plot(D0_values_1, EE_periodic_1, label='Periodic Reload ($D \leq 2400$)', color = 'royalblue')
+            ax.plot(D0_values_2, EE_periodic_2, label='Periodic Reload ($D > 2400$)', color = 'royalblue', linestyle='dashed')
+            ax.plot(D0_values, EE_continuous, label='Continuous Reload', color = 'yellowgreen')
         else:
-            ax.plot(N_samples_values, EE_periodic, label=None, color = 'royalblue')
-            ax.plot(N_samples_values, EE_continuous, label=None, color = 'yellowgreen')
-        ax.text(5610/2, EE_continuous[-1]*3.8, rf"$D={D0[i]}$", rotation = -6, fontsize=10, horizontalalignment='center')
+            ax.plot(D0_values_1, EE_periodic_1, label=None, color = 'royalblue')
+            ax.plot(D0_values_2, EE_periodic_2, label=None, color = 'royalblue', linestyle='dashed')
+            ax.plot(D0_values, EE_continuous, label=None, color = 'yellowgreen')
+        ax.text(5550/2, EE_continuous[-1]*4, rf"$N_{{\rm{{samples}}}}={N_samples}$", rotation = -11, fontsize=10, horizontalalignment='center')
 
-    ax.set_xlabel(r"Number of samples, $N_{samples}$")
-    ax.set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
+
+    ax.set_xlabel(r"Post-compilation Circuit Depth, $D$")
+    ax.set_ylabel(r"Energy Efficiency (computations/J)")
     ax.set_yscale('log')
-    ax.set_xlim(1, 5610)
-    ax.set_ylim(3e-10, 3e-4)
-    ax.set_title(r"Extra laser trap (1.5 kW)", fontsize=14)
-    ax.legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
+    # ax.set_xscale('log')
+    ax.set_xlim(1, 5550)
+    # ax.set_ylim(5.5e-6, 3.5e-3)
+    # ax.set_title(r"Extra laser trap (1.5 kW)", fontsize=14)
+    ax.legend(fontsize=11, fancybox=False, edgecolor='black')
     fig.savefig("Figures/Neutral_atoms/neutral_atoms_periodic_vs_continuous_reload.pdf", bbox_inches='tight')
 
 
 
 
 if __name__ == "__main__":
+    # plot_power_breakdown()
     plot_D_and_Nsamples()
-    plot_periodic_vs_continuous_reload()
+    # plot_periodic_vs_continuous_reload()
