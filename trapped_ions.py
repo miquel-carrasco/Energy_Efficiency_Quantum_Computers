@@ -1,6 +1,5 @@
 from qcenergy.components import Component
 from qcenergy.platforms import Computer, AtomBasedComputer
-from qcenergy.algorithms import Algorithm, Circuit
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -355,7 +354,8 @@ def plot_gates_per_layer():
     ax[1].fill_between(Ng_per_layer_vals, EE_10traps_worst, EE_10traps_best_shift, color='darkseagreen', alpha=0.4, step = 'post')
     ax[1].fill_between(Ng_per_layer_vals[:11], EE_10traps_best_shift[:11], EE_10traps_best_no_shift, hatch = "//", facecolor = "none", step = 'post', linewidth = 0)
     ax[1].fill_between(Ng_per_layer_vals[:11], EE_5trap_best_shift[:11], EE_5trap_best_no_shift, hatch = "\\", facecolor = "none", step = 'post', linewidth = 0)
-    ax[1].fill_between([0], [0], [0], hatch = "//", facecolor = "none", edgecolor = "k", step = 'post', linewidth = 1, label = "No transport between g.z.")
+    ax[1].fill_between([0], [0], [0], hatch = "\\\\", facecolor = "none", edgecolor = "k", step = 'post', linewidth = 1, label = "No transport between zones (5 g. z.)")
+    ax[1].fill_between([0], [0], [0], hatch = "//", facecolor = "none", edgecolor = "k", step = 'post', linewidth = 1, label = "No transport between zones (10 g. z.)")
     ax[1].fill_between([0],[0],[0], color='grey', alpha=0.4, label=r"$\beta_{\rm{trans}} = [\beta_{\rm{min}},1]$")
     ax[1].set_xlim(1, 50)
     ax[1].set_ylim(7e-8, 1.1e-3)

@@ -1,6 +1,5 @@
 from qcenergy.components import Component
 from qcenergy.platforms import PhotonicComputer, Computer
-from qcenergy.algorithms import Algorithm, Circuit
 
 import numpy as np
 import matplotlib.pyplot as plt

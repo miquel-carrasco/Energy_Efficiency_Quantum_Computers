@@ -1,6 +1,5 @@
 from qcenergy.components import Component
 from qcenergy.platforms import Computer, SolidStateComputer
-from qcenergy.algorithms import Algorithm, Circuit
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -115,7 +114,7 @@ def plot_QMIO_power_breakdown():
 
     width = 1
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(7,4))
     offset = 0
     ticks = []
     maps = ['Purples', 'Blues', 'Greens', 'Oranges', 'Reds']
@@ -145,11 +144,11 @@ def plot_QMIO_power_breakdown():
 
     ax.set_xticks(ticks)
     ax.set_xticklabels(list(power_types.keys()))
-    ax.set_ylim(0, max(power_types.values())*1.2)
+    ax.set_ylim(0, max(power_types.values())*1.3)
     ax.set_ylabel(r"Power consumption (W)")
 
     ax2 = ax.twinx()
-    ax2.set_ylim(0, max(power_types.values())/computer_qmio.P*100*1.2)
+    ax2.set_ylim(0, max(power_types.values())/computer_qmio.P*100*1.3)
     ax2.set_ylabel(r"Relative consumption (\%)")
 
     fig.savefig("Figures/Superconducting/superconducting_qmio_power_breakdown.pdf")
@@ -356,7 +355,7 @@ def plot_D_and_Nsamples():
 
 
 if __name__ == "__main__":
-    # plot_QMIO_power_breakdown()
-    plot_D_and_Nsamples()
+    plot_QMIO_power_breakdown()
+    # plot_D_and_Nsamples()
     # plot_power_breakdown()
     # reset_time()

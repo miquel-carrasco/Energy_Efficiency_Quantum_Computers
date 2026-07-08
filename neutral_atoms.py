@@ -1,8 +1,5 @@
-from matplotlib.ticker import FuncFormatter
-
 from qcenergy.components import Component
 from qcenergy.platforms import Computer, AtomBasedComputer
-from qcenergy.algorithms import Algorithm, Circuit
 
 import numpy as np
 import matplotlib.pyplot as plt

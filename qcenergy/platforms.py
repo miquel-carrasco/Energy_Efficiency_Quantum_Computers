@@ -1,6 +1,5 @@
 from qcenergy.components import Component
 from qcenergy.graphs import linear, circular, square, heavy_hex
-from qcenergy.algorithms import Algorithm, Circuit
 import math
 """
 Defines the base classes for computation platforms.
@@ -39,7 +38,7 @@ class Computer:
                 type_dict[comp.comp_type] = [comp.name]
         return (type_dict)
 
-    def assemble(self) -> None:
+    def assemble(self) -> list[Component]:
         """
         Assemble a list of components into the computer
         """
@@ -62,23 +61,7 @@ class Computer:
                 power_dict[comp.name] += comp.P
             else:
                 power_dict[comp.name] = comp.P
-        return {k: v  for k,v in sorted(power_dict.items(), key=lambda item: item[1], reverse=True)}
-
-    def power_per_types(self) -> dict[str, float]:
-        """
-        Return the power consumed by each type of component.
-
-        Args:
-            time (float): time in seconds.
-        Returns:
-            dict[str, float]: energy spent by each type of component.
-        """
-        energy_dict = {}
-        for type in self.list_types_components:
-            energy_dict[type] = sum([comp.P for comp in self.list_components if comp.comp_type == type])
-        
-        # return {k: v  for k,v in sorted(energy_dict.items(), key=lambda item: item[1], reverse=True)}
-        return {k:v for k,v in energy_dict.items()}        
+        return {k: v  for k,v in sorted(power_dict.items(), key=lambda item: item[1], reverse=True)}   
     
 
     @property
@@ -169,6 +152,21 @@ class SolidStateComputer(Computer):
         types.append(types.pop(types.index('Classical Processing')))
         return types
     
+    def power_per_types(self) -> dict[str, float]:
+        """
+        Return the power consumed by each type of component.
+
+        Args:
+            time (float): time in seconds.
+        Returns:
+            dict[str, float]: power consumed by each type of component.
+        """
+        energy_dict = {}
+        for type in self.list_types_components:
+            energy_dict[type] = sum([comp.P for comp in self.list_components if comp.comp_type == type])
+        
+        return {k:v for k,v in energy_dict.items()}     
+
     def final_circuit_depth(self, D0: int, alpha: float) -> int:
         """
         Return the final depth of the circuit after compilation.
@@ -266,6 +264,22 @@ class AtomBasedComputer(Computer):
         types.insert(0, types.pop(types.index('Environmental Conditions')))
         types.append(types.pop(types.index('Classical Processing')))
         return types
+    
+
+    def power_per_types(self) -> dict[str, float]:
+        """
+        Return the power consumed by each type of component.
+
+        Args:
+            time (float): time in seconds.
+        Returns:
+            dict[str, float]: power consumed by each type of component.
+        """
+        energy_dict = {}
+        for type in self.list_types_components:
+            energy_dict[type] = sum([comp.P for comp in self.list_components if comp.comp_type == type])
+        
+        return {k:v for k,v in energy_dict.items()}     
 
     
     def no_indep_depth(self, D0: int, alpha: float) -> int:
@@ -274,7 +288,6 @@ class AtomBasedComputer(Computer):
 
 
     def final_circuit_depth(self, D0: int, alpha: float, N_gates_layer: int) -> int:
-        
 
         if D0 == 0:
             return 0
@@ -316,7 +329,7 @@ class PhotonicComputer(Computer):
                 Nq: int = 24,
                 components: list[Component] = [],
                 N_comp: list[int] = [], 
-                r_source: int = 100*10^6,
+                r_source: int = 100e6,
                 D_optical: int = 48,
                 eta_source =0.5,
                 eta_det = 0.95,
@@ -354,6 +367,21 @@ class PhotonicComputer(Computer):
         types.insert(0, types.pop(types.index('Cooling')))
         types.append(types.pop(types.index('Classical Processing')))
         return types
+
+    def power_per_types(self) -> dict[str, float]:
+        """
+        Return the power consumed by each type of component.
+
+        Args:
+            time (float): time in seconds.
+        Returns:
+            dict[str, float]: power consumed by each type of component.
+        """
+        energy_dict = {}
+        for type in self.list_types_components:
+            energy_dict[type] = sum([comp.P for comp in self.list_components if comp.comp_type == type])
+        
+        return {k:v for k,v in energy_dict.items()}     
 
     def eta_total(self) -> float:
         """
