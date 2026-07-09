@@ -1,6 +1,6 @@
-# Energy Efficiency of Quantum computers
+# Energy efficiency of quantum computers
 
-This repository contains the python scripts and data used to estimate the energy efficiencies of different quantum computing platforms, based on the method presented in our paper of the same name: [text](https://arxiv.org/abs/2605.15090).
+This repository contains the python scripts and data used to estimate the energy efficiencies of different quantum computing platforms, based on the method presented in our paper of the same name: [Energy efficiency of quantum computers](https://arxiv.org/abs/2605.15090).
 
 
 The **qcenergy** folder includes the modules with the **components** and quantum computing **platforms** classes, as well as functions that return the shortest-path length of the considered **connectivity graphs**. The platforms included in our study are grouped in three main families that have Computer class of their own:
