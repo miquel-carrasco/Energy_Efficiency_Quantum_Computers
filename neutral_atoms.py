@@ -7,7 +7,6 @@ from matplotlib.colors import LogNorm
 from matplotlib import colormaps
 import math
 
-from spin_qubits import N_du, N_pt
 
 params = {'axes.labelsize': 14,
          'axes.titlesize': 15,
