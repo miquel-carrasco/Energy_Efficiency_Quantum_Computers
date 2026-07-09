@@ -18,5 +18,3 @@ The **qcenergy** folder includes the modules with the **components** and quantum
 
 
 In this repository, there are all the scripts that we used to produce the results shown in our work. Mainly, there are five files corresponding to each of the platforms, as well as two extra scripts that plot the effect of the **basis gate set** and **connectivity constraints** on the final depth of quantum circuits.
-
-In 
