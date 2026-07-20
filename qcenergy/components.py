@@ -5,7 +5,12 @@ Defines base classes for components.
 
 class Component:
     """
-    A generic component.
+    A generic component class that can be used to represent any component in a quantum computing system.
+
+    Attributes:
+        name (str): Name of the component.
+        P (float): Power consumed by the component when being used.
+        comp_type (str): Type of the component (e.g., 'cooling', 'qubit control', etc.).
     """
 
     def __init__(self,
@@ -16,8 +21,6 @@ class Component:
         self.P = P  #: Power consumed by the component when being used.
         self.comp_type = comp_type  #: Type of the component.
 
-    def __repr__(self):
-        return f"({self.name}: P= {self.P}W)"
 
     def computation_energy(self, time: float) -> float:
         """
@@ -27,6 +30,6 @@ class Component:
             time (float): time in seconds.
 
         Returns:
-            float: total energy fixed_energy + P*t.
+            float: energy consumed in time t (P*t).
         """
         return time * self.P

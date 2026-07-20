@@ -1,13 +1,17 @@
 from qcenergy.components import Component
 from qcenergy.graphs import linear, circular, square, heavy_hex
 import math
-"""
-Defines the base classes for computation platforms.
-"""
+
 
 class Computer:
     """
-    A generic computer.
+    A class that represents a generic (qubit-agnostic) quantum computer.
+
+    Attributes:
+        Nq: Number of qubits in the computer.
+        components: List of components in the computer.
+        N_comp: List of number of components in the computer.
+        list_components: List of components in the computer, assembled based on the number of components.
     """
 
     def __init__(self,
@@ -16,20 +20,18 @@ class Computer:
                  N_comp: list[int] = []
                  ):
         
-        self.Nq = Nq
-        self.components = components
-        self.N_comp = N_comp
-        self.list_components = self.assemble()
-        
+        self.Nq: int = Nq
+        self.components: list[Component] = components
+        self.N_comp: list[int] = N_comp
+        self.list_components: list[Component] = self.assemble()
+
     
     @property
     def type_groups_components(self) -> dict[str, list[str]]:
         """
-        Return the dictionary of types of components in the computer.
-
-        Returns:
-            dict[str, set[str]]: dictionary of types of components.
+        Dictionary of types of components in the computer.
         """
+
         type_dict = {}
         for comp in self.list_components:
             if comp.comp_type in type_dict and comp.name not in type_dict[comp.comp_type]:
@@ -37,23 +39,30 @@ class Computer:
             elif comp.comp_type not in type_dict:
                 type_dict[comp.comp_type] = [comp.name]
         return (type_dict)
+    
+
 
     def assemble(self) -> list[Component]:
         """
-        Assemble a list of components into the computer
+        Assembles the hardware components of the computer, based on the list of components and
+        number of components.
+
+        Returns:
+            list[Component]: list of components in the computer.
         """
         list_components = []
         for i, comp in enumerate(self.components):
             for  j in range(self.N_comp[i]):
                 list_components.append(comp)
         return list_components
+    
 
     def power_per_component(self) -> dict[str, float]:
         """
-        Return the power consumed by each component.
+        Returns the power consumed by each component.
 
         Returns:
-            dict[str, float]: power consumed by each component type.
+            dict[str, float]: power consumed by each component. Keys are component names.
         """
         power_dict = {}
         for comp in self.list_components:
@@ -67,22 +76,21 @@ class Computer:
     @property
     def P(self) -> float:
         """
-        Return the total power consumed by the computer.
-
-        Returns:
-            float: total power.
+        Total power consumed by the computer, in watts.
         """
         return sum([comp.P for comp in self.list_components])
     
+
+
     def N_pi(self, t: float, D0: int, alpha: float, N_samples: float) -> float:
         """
-        Return the number of computations that can be performed in time T.
+        Returns the number of computations that can be performed in time T.
 
         Args:
-            t (float): time in seconds.
-            D0 (int): initial depth of the circuit.
-            alpha (float): overhead factor for routing.
-            N_sampl (float): number of samples.
+            t: time in seconds.
+            D0: initial depth of the circuit.
+            alpha: overhead factor for routing.
+            N_sampl: number of samples.
 
         Returns:
             float: number of computations.
@@ -94,7 +102,17 @@ class Computer:
 
 class SolidStateComputer(Computer):
     """
-    A solid-state computer.
+    Class representing a solid-state quantum computer, such as superconducting qubits or spin qubits.
+
+    Attributes:
+        Nq: Number of qubits in the computer.
+        components: List of components in the computer.
+        N_comp: List of number of components in the computer.
+        t_reset: time to reset a qubit in seconds.
+        t_meas: time to measure a qubit in seconds.
+        t_clock: time to perform a clock cycle in seconds.
+        graph_type: type of connectivity graph of the computer.
+        list_components: List of components in the computer, assembled based on the number of components.
     """
     def __init__(self,
                  Nq: int = 100,
@@ -107,21 +125,18 @@ class SolidStateComputer(Computer):
                  ):
     
         super().__init__(Nq=Nq, components=components, N_comp=N_comp)
-        self.t_reset = t_reset
-        self.t_meas = t_meas
-        self.t_clock = t_clock
-        self.graph_type = graph_type
+        self.t_reset: float = t_reset
+        self.t_meas: float = t_meas
+        self.t_clock: float = t_clock
+        self.graph_type: str = graph_type
 
-        self.list_components = self.assemble()
+        self.list_components: list[Component] = self.assemble()
 
     
     @property
-    def avg_diameter(self) -> float:
+    def avg_spl(self) -> float:
         """
-        Return the average diameter of the computer's connectivity graph.
-
-        Returns:
-            float: average diameter.
+        Average shortest path length of the connectivity graph of the computer.
         """
         if self.graph_type == "All-to-all":
             return 1.0
@@ -139,10 +154,7 @@ class SolidStateComputer(Computer):
     @property
     def list_types_components(self) -> list[str]:
         """
-        Return the list of types of components in the computer.
-
-        Returns:
-            list[str]: list of types of components.
+        List of the components types in the computer.
         """
         types = set()
         for comp in self.list_components:
@@ -154,10 +166,8 @@ class SolidStateComputer(Computer):
     
     def power_per_types(self) -> dict[str, float]:
         """
-        Return the power consumed by each type of component.
+        Returns the power consumed by each type of component, in watts.
 
-        Args:
-            time (float): time in seconds.
         Returns:
             dict[str, float]: power consumed by each type of component.
         """
@@ -179,16 +189,16 @@ class SolidStateComputer(Computer):
             int: final depth of the circuit.
         """
         
-        return D0*(1 + 3*alpha*math.ceil((self.avg_diameter-1)/2))
+        return D0*(1 + 3*alpha*math.ceil((self.avg_spl-1)/2))
 
     def t_comp(self, D0: int, alpha: float, N_samples: float) -> float:
         """
-        Return the computation time for a given algorithm.
+        Returns the computation time for a given algorithm.
 
         Args:
-            D0 (int): initial depth of the circuit.
-            alpha (float): overhead factor for routing.
-            N_samples (float): number of samples.
+            D0: initial depth of the circuit.
+            alpha: overhead factor for routing.
+            N_samples: number of samples.
 
         Returns:
             float: computation time.
@@ -200,14 +210,12 @@ class SolidStateComputer(Computer):
 
     def energy_efficiency(self, D0: int, alpha: float, N_samples: float) -> float:
         """
-        Return the energy efficiency of the computer.
+        Returns the energy efficiency of the computer running a given algorithm.
 
         Args:
-            D0 (int): initial depth of the circuit.
-            alpha (float): overhead factor for routing.
-            N_sampl (float): number of samples.
-
-            T_list (dict): list of computation times for each component.
+            D0: initial depth of the circuit.
+            alpha: overhead factor for routing.
+            N_samples: number of samples.
 
         Returns:
             float: energy efficiency.
@@ -219,7 +227,24 @@ class SolidStateComputer(Computer):
 
 class AtomBasedComputer(Computer):
     """
-    A trapped ions computer.
+    Class representing an atom-based quantum computer, such as neutral atoms or trapped ions.
+
+    Attributes:
+        Nq: Number of qubits in the computer.
+        components: List of components in the computer.
+        N_comp: List of number of components in the computer.
+        t_reset: time to reset a qubit in seconds.
+        t_meas: time to measure a qubit in seconds.
+        t_clock: time to perform a clock cycle in seconds.
+        t_transport: time to transportqubits from the storage to the interaction zones in seconds.
+        t_reload: time to reload a qubit in seconds.
+        t_reload_freq: frequency of the atom reload procedure in number of layers.
+        N_gatezones: number of independent gate zones in the computer.
+        independent_gates: whether the gates can be performed independently in the different gate zones.
+        periodic_reload: whether the atom reload procedure is performed periodically or not.
+        list_components: List of components in the computer, assembled based on the number of components.
+
+    
     """
     def __init__(self,
                  Nq: int = 100,
@@ -237,25 +262,22 @@ class AtomBasedComputer(Computer):
                  ):
     
         super().__init__(Nq=Nq, components=components, N_comp=N_comp)
-        self.t_reset = t_reset
-        self.t_meas = t_meas
-        self.t_clock = t_clock
-        self.t_reload = t_reload
-        self.t_reload_freq = t_reload_freq
-        self.t_transport = t_transport
-        self.N_gatezones = N_gatezones
-        self.independent_gates = independent_gates
-        self.periodic_reload = periodic_reload
+        self.t_reset: float = t_reset
+        self.t_meas: float = t_meas
+        self.t_clock: float = t_clock
+        self.t_reload: float = t_reload
+        self.t_reload_freq: int = t_reload_freq
+        self.t_transport: float = t_transport
+        self.N_gatezones: int = N_gatezones
+        self.independent_gates: bool = independent_gates
+        self.periodic_reload: bool = periodic_reload
 
-        self.list_components = self.assemble()
+        self.list_components: list[Component] = self.assemble()
     
     @property
     def list_types_components(self) -> list[str]:
         """
-        Return the list of types of components in the computer.
-
-        Returns:
-            list[str]: list of types of components.
+        List of the components types in the computer.
         """
         types = set()
         for comp in self.list_components:
@@ -268,10 +290,8 @@ class AtomBasedComputer(Computer):
 
     def power_per_types(self) -> dict[str, float]:
         """
-        Return the power consumed by each type of component.
+        Returns the power consumed by each type of component, in watts.
 
-        Args:
-            time (float): time in seconds.
         Returns:
             dict[str, float]: power consumed by each type of component.
         """
@@ -283,11 +303,27 @@ class AtomBasedComputer(Computer):
 
     
     def no_indep_depth(self, D0: int, alpha: float) -> int:
+        """
+        Returns a modified depth of the circuit when the gates cannot be performed independently in the different gate zones.
 
+        Returns:
+            int: final depth of the circuit.
+        """
         return D0 + math.ceil(D0*alpha) 
 
 
     def final_circuit_depth(self, D0: int, alpha: float, N_gates_layer: int) -> int:
+        """
+        Returns the final depth of the circuit after all compilation processes, including non-independent gate performance and limited gate zones.
+
+        Args:
+            D0: initial depth of the circuit.
+            alpha: overhead factor for routing.
+            N_gates_layer: number of gates in the layer.
+        
+        Returns:
+            int: final depth of the circuit.
+        """
 
         if D0 == 0:
             return 0
@@ -302,6 +338,19 @@ class AtomBasedComputer(Computer):
                 return  D
     
     def t_comp(self, D0: int, alpha: float, beta: float, N_gates_layer: int, N_samples: int) -> float:
+        """
+        Returns the computation time for a given algorithm.
+
+        Args:
+            D0: initial depth of the circuit.
+            alpha: overhead factor for routing.
+            beta: ratio of layers that require transport.
+            N_gates_layer: number of gates in the layer.
+
+        Returns:
+            float: computation time, in seconds.
+        """
+
         if not self.independent_gates:
             beta = beta/(1 + alpha)
         if not self.periodic_reload:
@@ -312,17 +361,55 @@ class AtomBasedComputer(Computer):
             return (self.t_reset + self.final_circuit_depth(D0, alpha, N_gates_layer)*self.t_clock + self.t_meas + self.t_transport*self.final_circuit_depth(D0, alpha, N_gates_layer)*beta+extra_reload_time)*N_samples
 
     def N_pi(self, t: float, D0: int, alpha: float, beta: float, N_gates_layer: int, N_samples: int) -> float:
-        
+        """
+        Returns the number of computations that can be performed in time T.
+
+        Args:
+            t: time, in seconds.
+            D0: initial depth of the circuit.
+            alpha: overhead factor for routing.
+            beta: ratio of layers that require transport.
+            N_gates_layer: number of gates in the layer.
+            N_samples: number of samples.
+
+        Returns:
+            float: number of computations.
+        """
         return t / self.t_comp(D0, alpha, beta, N_gates_layer, N_samples)
 
     def energy_efficiency(self, D0: int, alpha: float, beta: float, N_gates_layer: int, N_samples: int) -> float:
-        
+        """
+        Returns the energy efficiency of the computer running a given algorithm.
+
+        Args:
+            D0: initial depth of the circuit.
+            alpha: overhead factor for routing.
+            beta: ratio of layers that require transport.
+            N_gates_layer: number of gates in the layer.
+            N_samples: number of samples.
+
+        Returns:
+            float: energy efficiency.
+        """
         return 1 / (self.t_comp(D0, alpha, beta, N_gates_layer, N_samples) * self.P)
 
 
 class PhotonicComputer(Computer):
     """
-    A photonic computer, chip-based with a Clement architecture.
+    Class representing a photonic computer, chip-based with a Clements architecture.
+
+    Attributes:
+        Nq: Number of qubits in the computer.
+        components: List of components in the computer.
+        N_comp: List of number of components in the computer.
+        r_source: rate of the single photon source in Hz.
+        D_optical: optical depth of the chip.
+        eta_source: efficiency of the single photon source.
+        eta_det: efficiency of the single photon detector.
+        eta_dmx: efficiency of the demultiplexer.
+        eta_coup: efficiency of the coupling between the source and the chip.
+        eta_mzi: efficiency of the Mach-Zehnder interferometer.
+        graph_type: type of connectivity graph of the computer.
     """
 
     def __init__(self,
@@ -331,34 +418,31 @@ class PhotonicComputer(Computer):
                 N_comp: list[int] = [], 
                 r_source: int = 100e6,
                 D_optical: int = 48,
-                eta_source =0.5,
-                eta_det = 0.95,
-                eta_dmx = 0.8,
-                eta_coup = 0.8,
-                eta_mzi = 0.9,
+                eta_source: float = 0.5,
+                eta_det: float = 0.95,
+                eta_dmx: float = 0.8,
+                eta_coup: float = 0.8,
+                eta_mzi: float = 0.9,
                 graph_type: str = "All-to-all"
                 ):
         
-        self.Nq = Nq
-        self.components = components
-        self.N_comp = N_comp
-        self.list_components = self.assemble()
-        self.r_source = r_source
-        self.D_optical = D_optical
-        self.eta_source = eta_source
-        self.eta_det = eta_det
-        self.eta_dmx = eta_dmx
-        self.eta_coup = eta_coup
-        self.eta_mzi = eta_mzi
-        self.graph_type = graph_type
+        self.Nq: int = Nq
+        self.components: list[Component] = components
+        self.N_comp: list[int] = N_comp
+        self.list_components: list[Component] = self.assemble()
+        self.r_source: int = r_source
+        self.D_optical: int = D_optical
+        self.eta_source: float = eta_source
+        self.eta_det: float = eta_det
+        self.eta_dmx: float = eta_dmx
+        self.eta_coup: float = eta_coup
+        self.eta_mzi: float = eta_mzi
+        self.graph_type: str = graph_type
 
     @property
     def list_types_components(self) -> list[str]:
         """
-        Return the list of types of components in the computer.
-
-        Returns:
-            list[str]: list of types of components.
+        List of the components types in the computer.
         """
         types = set()
         for comp in self.list_components:
@@ -367,13 +451,12 @@ class PhotonicComputer(Computer):
         types.insert(0, types.pop(types.index('Cooling')))
         types.append(types.pop(types.index('Classical Processing')))
         return types
+    
 
     def power_per_types(self) -> dict[str, float]:
         """
         Return the power consumed by each type of component.
 
-        Args:
-            time (float): time in seconds.
         Returns:
             dict[str, float]: power consumed by each type of component.
         """
@@ -385,16 +468,19 @@ class PhotonicComputer(Computer):
 
     def eta_total(self) -> float:
         """
-        Return the end-to-end transmissivity of the chip 
+        Returns the end-to-end transmissivity of the chip.
+
+        Returns:
+            float: end-to-end transmissivity of the chip.
         """
         return self.eta_det*self.eta_source*self.eta_dmx*10**(-2*self.eta_coup/10)*10**(-2*self.D_optical*self.eta_mzi/10)
     
     def CoincRate(self, N_photons: int) -> float:
             """
-            Return the coincidence rate for detecting n photons
+            Return the coincidence rate for detecting N_photons.
 
             Args:
-                N_photons (int): number of photons
+                N_photons: number of photons
 
             Returns:
                 float: coincidence rate
@@ -404,12 +490,17 @@ class PhotonicComputer(Computer):
     
     def t_algo(self,N_samples : int, N_photon: int, N_source : int ) -> float:
             """
-            Return the time to perform an algorithm in seconds
+            Returns the time to perform an algorithm, in seconds.
+
             Args:
-                N_photons (int): number of photons involved
-                N_samples (int): number of shots necessary to perform the algorithm
-                N_source (int): Number of single photon sources in the computer
+                N_photons: number of photons involved
+                N_samples: number of samples necessary to perform the algorithm
+                N_source: Number of single photon sources in the computer
+
+            Returns:
+                float: time to perform the algorithm, in seconds
             """
+
             eta_total = self.eta_total() #total transmission of the chip
             t_detect = (N_photon/(N_source*self.r_source) )* 1/(eta_total**N_photon)
             return N_samples*t_detect
@@ -418,15 +509,19 @@ class PhotonicComputer(Computer):
 
     def energy_efficiency(self,N_samples : int, N_photon: int, N_source : int ) -> float:
         """
-        Return the energy efficiency 
+        Return the energy efficiency of the computer running a given algorithm, in computations per joule.
         
         Args:
-                N_photons (int): number of photons involved
-                N_samples (int): number of shots necessary to perform the algorithm
-                N_source (int): Number of single photon sources in the computer
+            N_photons: number of photons involved
+            N_samples: number of samples necessary to perform the algorithm
+            N_source: Number of single photon sources in the computer
+
+        Returns:
+            float: energy efficiency in computations per joule
+
             """
-        t_algo = self.t_algo(N_samples, N_photon, N_source)
+        t = self.t_algo(N_samples, N_photon, N_source)
         tot_power = self.P
 
-        return 1/(t_algo*tot_power)
+        return 1/(t*tot_power)
     

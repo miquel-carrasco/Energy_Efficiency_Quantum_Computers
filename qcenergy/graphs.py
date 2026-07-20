@@ -2,6 +2,10 @@ import rustworkx as rx
 import rustworkx.generators as rx_gen
 import math
 
+"""
+Average shortest path length (ASPL) functions for different graph topologies. These functions take the number of qubits (Nq) as input and return the (ASPL) for the corresponding graph topology.
+"""
+
 
 def linear(Nq):
     graph = rx_gen.path_graph(Nq)
