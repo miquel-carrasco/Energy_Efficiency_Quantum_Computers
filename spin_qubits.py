@@ -96,7 +96,7 @@ def plot_power_breakdown():
     plt.close()
 
 
-def crossbar_vs_planar_vs_linear_49_100():
+def crossbar_vs_planar_vs_linear():
 
     fig, ax = plt.subplots(1,1, figsize=(7,5), sharey=True)
     colors = colormaps['summer'].reversed()(np.linspace(0.4, 0.8, 2))
@@ -130,10 +130,7 @@ def crossbar_vs_planar_vs_linear_49_100():
         if D0 == 500:
             print("2D, 49 qubits", computer_49.energy_efficiency(D0, alpha , N_samples=1), computer_49.final_circuit_depth(D0, alpha), 
                   computer_49.t_comp(D0, alpha, N_samples=1))
-        #     print("2D, 100 qubits", computer_100.energy_efficiency(D0, alpha, N_samples=1))
         EE_planar_49.append(computer_49.energy_efficiency(D0, alpha, N_samples=1))
-
-
 
     computer_49.graph_type = "Linear"
     N_dc = 2*Nq-1
@@ -149,7 +146,6 @@ def crossbar_vs_planar_vs_linear_49_100():
         if D0 == 500:
             print("Linear, 49 qubits", computer_49.energy_efficiency(D0, alpha, N_samples=1), computer_49.final_circuit_depth(D0, alpha),
                   computer_49.t_comp(D0, alpha, N_samples=1))
-        #     print("Linear, 100 qubits", computer_100.energy_efficiency(D0, alpha, N_samples=1))
         EE_linear_49.append(computer_49.energy_efficiency(D0, alpha, N_samples=1))
 
     computer_49.graph_type = "Square"
@@ -169,18 +165,12 @@ def crossbar_vs_planar_vs_linear_49_100():
     Ni = [int(x) for x in Ni]
 
     for D0 in D_values:
-        # if D0 == 500:
-        #     print("Crossbar, 49 qubits", computer_49.energy_efficiency(D0, alpha, N_samples=1))
-        #     print("Crossbar, 100 qubits", computer_100.energy_efficiency(D0, alpha, N_samples=1))
         EE_crossbar_og_49.append(computer_49.energy_efficiency(D0, alpha, N_samples=1))
     
     computer_49.t_clock = 10e-9
     computer_49.t_meas = 10e-6
     computer_49.N_comp = Ni
     for D0 in D_values:
-        # if D0 == 500:
-        #     print("Crossbar, 49 qubits", computer_49.energy_efficiency(D0, alpha, N_samples=1))
-        #     print("Crossbar, 100 qubits", computer_100.energy_efficiency(D0, alpha, N_samples=1))
         EE_crossbar_red_49.append(computer_49.energy_efficiency(D0, alpha, N_samples=1))
 
     ax.plot(D_values, EE_linear_49, label='Linear', color = "royalblue", zorder = 10)
@@ -195,7 +185,6 @@ def crossbar_vs_planar_vs_linear_49_100():
     ax.set_ylabel(r"Energy Efficiency (computations/J)")
     ax.set_xlim(0, 1000)
     ax.set_ylim(1e-2, 0.58e0)
-    # ax.set_yscale('log')
     ax.legend(fontsize=10, loc='upper right', fancybox=False, edgecolor='black', ncols=2)
     fig.savefig("Figures/Spin_qubits/spin_qubits_crossbar_vs_planar_vs_linear.pdf", bbox_inches='tight')
     plt.close()
@@ -275,8 +264,6 @@ def plot_D_and_Nsamples():
     ax2.set_yscale('log')
     ax2.set_ylim(8.5e-6*computer.P*T, 8.5e0*computer.P*T)
 
-    # axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
-
     plt.subplots_adjust(wspace=0.1)
 
     plt.savefig("Figures/Spin_qubits/spin_qubits_D_and_Nsamples.pdf", bbox_inches='tight')
@@ -285,6 +272,6 @@ def plot_D_and_Nsamples():
 
 
 if __name__ == "__main__":
-    # crossbar_vs_planar_vs_linear_49_100()
+    # crossbar_vs_planar_vs_linear()
     # plot_D_and_Nsamples()
     plot_power_breakdown()

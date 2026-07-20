@@ -42,12 +42,6 @@ def plot_D_scalings():
     n_heavy_hex = int((5*d**2-2*d-1)/2)
 
 
-    # print(f"Avg. linear graph shortest path length (50 qubits): {linear_avg_spl}")
-    # print(f"Avg. circular graph shortest path length (50 qubits): {circular_avg_spl}")
-    # print(f"Avg. square graph shortest path length (49 qubits): {square_avg_spl}")
-    # print(f"Avg. heavy-hex graph shortest path length (57 qubits): {heavy_hex_avg_spl}")
-
-
     fig, axs = plt.subplots(1,3, figsize = (10, 4), sharey = True)
 
     D0_vals = np.arange(0, 1040, 10)
@@ -72,9 +66,7 @@ def plot_D_scalings():
         axs[i].set_title(rf"$\alpha_{{\rm{{2q}}}}={alpha}$", pad = 10)
         axs[i].set_xlim(0,max(D0_vals))
 
-    # axs[0].set_yscale("log")
     axs[0].set_ylim(-10, 2.5e4)
-    # axs[0].set_ylim(10, 2.5e4)
     axs[0].legend(fontsize=10, loc='upper left', fancybox=False, edgecolor='black')
     fig.supxlabel(r'Pre-routing Circuit Depth, $D_{0}$', fontsize = 16, y = 0.04)
     axs[0].set_ylabel(r"Post-routing Circuit Depth, $D$", fontsize = 16)

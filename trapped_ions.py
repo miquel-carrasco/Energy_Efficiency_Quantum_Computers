@@ -161,10 +161,8 @@ def plot_D_and_Nsamples():
         axs[1].text(2200, EE_list[-1]*5, rf"$D={D0}$", rotation = -6, fontsize=10)
 
     axs[1].set_xlabel(r"Number of samples, $N_{\mathrm{samples}}$")
-    # axs[1].set_ylabel(r"Energy Efficiency, $EE$ [computations/J]")
     axs[1].set_xlim(0, 5010)
     axs[1].set_yscale('log')
-    # axs[1].set_ylim(8.5e-12, 2.7e-2)
 
     axs[1].text(500, 5e-5, "(b)", fontsize = 14)
 
@@ -176,119 +174,11 @@ def plot_D_and_Nsamples():
     ax2.set_yscale('log')
     ax2.set_ylim(8.5e-12*computer.P*T, 2.5e-4*computer.P*T)
 
-    # axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
-
     plt.subplots_adjust(wspace=0.1)
 
     plt.savefig("Figures/Trapped_ions/trapped_ions_D_and_Nsamples.pdf", bbox_inches='tight')
     plt.close()
 
-def plot_comparison_traps():
-    computer_1trap = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_1_gatezone, t_transport=t_transport, N_gatezones=1, independent_gates=False)
-
-    N_components_indep = [N_image, N_HVAC, N_magnetic_field, 2, N_gate_drive,  N_laser_system, N_passive_control, N_control_desktop]
-    computer_10traps_no_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_10_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
-    computer_10traps_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_indep, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_10_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
-
-    fig, axs = plt.subplots(1,3, figsize=(13,4), sharey=True)
-
-    Ng_per_layer_vals = [1, 10, 50]
-
-    beta_1 = 0.9
-    beta_10 = 1+(beta_1-1)*10
-
-    for i, Ng_per_layer in enumerate(Ng_per_layer_vals):
-        #Worst case
-        alpha = 1
-
-        D_values = np.arange(1, 1010, 5)
-        EE_1trap_worst = []
-        EE_10traps_no_indep_alpha0= []
-        EE_10traps_no_indep_alpha1= []
-        EE_10traps_indep = []
-        for D0 in D_values:
-            Ng = D0*Ng_per_layer
-            EE_1trap_worst.append(computer_1trap.energy_efficiency(D0, alpha, beta_1, N_gates_layer=Ng, N_samples=100))
-            EE_10traps_no_indep_alpha0.append(computer_10traps_no_indep.energy_efficiency(D0, 0, beta_10, N_gates_layer=Ng, N_samples=100))
-            EE_10traps_no_indep_alpha1.append(computer_10traps_no_indep.energy_efficiency(D0, 1, beta_10, N_gates_layer=Ng, N_samples=100))
-            EE_10traps_indep.append(computer_10traps_indep.energy_efficiency(D0, alpha, beta_10, N_gates_layer=Ng, N_samples=100))
-
-
-        axs[i].plot(D_values, EE_1trap_worst, label=r"1 gate zone", color='royalblue')
-        axs[i].plot(D_values, EE_10traps_no_indep_alpha0, color='yellowgreen')
-        axs[i].plot(D_values, EE_10traps_no_indep_alpha1, color='yellowgreen')
-        axs[i].plot(D_values, EE_10traps_indep, label=r"10 gate zones, independent gates", color='darkgreen', linestyle='--')
-        axs[i].fill_between(D_values, EE_10traps_no_indep_alpha0, EE_10traps_no_indep_alpha1, color='yellowgreen', alpha=0.5, label=r"10 gate zones, non-indep. gates ($\alpha=[0,1]$)")
-
-        axs[i].set_xlabel(r"Pre-routing circuit depth, $D_{0}$")
-        axs[i].set_xlim(0, max(D_values))
-        axs[i].set_yscale('log')
-
-    axs[0].text(380, 3.5e-6, r"a) $\overline{N_{\rm{g}}^{\rm{L}}}=1$", fontsize=14)
-    axs[1].text(380, 3.5e-6, r"b) $\overline{N_{\rm{g}}^{\rm{L}}}=10$", fontsize=14)
-    axs[2].text(380, 3.5e-6, r"c) $\overline{N_{\rm{g}}^{\rm{L}}}=50$", fontsize=14)
-    axs[0].set_ylim(3.5e-10, 1.5e-5)
-    axs[0].set_ylabel(r"Energy Efficiency (computations/J)")
-    axs[0].legend(fontsize=10, loc='lower left', fancybox=False, edgecolor='black')
-
-    fig.subplots_adjust(wspace=0.05)
-
-    fig.savefig(f"Figures/Trapped_ions/trapped_ions_comparison_traps_beta1={beta_1}.pdf", bbox_inches='tight')
-    plt.close()
-
-
-def plot_beta():
-    N_components_indep = [N_image, N_HVAC, N_magnetic_field, 2, N_gate_drive, N_laser_system, N_passive_control, N_control_desktop]
-    computer_10traps_no_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_comp_no_cryo, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_10_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=False)
-    computer_10traps_indep = AtomBasedComputer(Nq=Nq, components=components_no_cryo, N_comp=N_components_indep, t_reset=t_reset, t_meas=t_meas, t_clock=t_clock_10_gatezones, t_transport=t_transport, N_gatezones=10, independent_gates=True)
-
-    fig, axs = plt.subplots(1,2, figsize=(10,4), sharey=True)
-
-    Ng_per_layer_vals = [10, 20]
-
-    D0 = 500
-    for i, Ng_per_layer in enumerate(Ng_per_layer_vals):
-        beta_vals = np.linspace(min_beta(Ng_per_layer, 10), 1, 200)
-        EE_10traps_no_indep_alpha0= []
-        EE_10traps_no_indep_alpha1=[]
-        EE_10traps_indep = []
-        for beta in beta_vals:
-            Ng = D0*Ng_per_layer
-            EE_10traps_no_indep_alpha0.append(computer_10traps_no_indep.energy_efficiency(D0, 0, beta, N_gates_layer=Ng, N_samples=1))
-            EE_10traps_no_indep_alpha1.append(computer_10traps_no_indep.energy_efficiency(D0, 1, beta, N_gates_layer=Ng, N_samples=1))
-            EE_10traps_indep.append(computer_10traps_indep.energy_efficiency(D0, 0, beta, N_gates_layer=Ng, N_samples=1))
-        axs[i].plot(beta_vals, EE_10traps_no_indep_alpha0, color='yellowgreen')
-        axs[i].plot(beta_vals, EE_10traps_no_indep_alpha1, color='yellowgreen')
-        axs[i].plot(beta_vals, EE_10traps_indep, label=r"10 zones, independent gates", color='darkgreen', linestyle='--')
-        axs[i].fill_between(beta_vals, EE_10traps_no_indep_alpha0, EE_10traps_no_indep_alpha1, color='yellowgreen', alpha=0.5, label=r"10 zones, no independent gates")
-        axs[i].set_xlabel(r"Transport per layer ratio, $\beta$")
-
-
-    axs[0].set_xlim(0, 1)
-    axs[0].set_yscale('log')
-    axs[1].set_xlim(0.4, 1)
-    axs[0].set_ylim(1.5e-6, 2.5e-4)
-    axs[1].vlines(min_beta(Ng_per_layer_vals[1], 10), 3e-9, 4e-2, color='grey', linestyle='--')
-    axs[1].fill_betweenx([3e-9, 4e-3], 0, min_beta(Ng_per_layer_vals[1], 10), color='grey', alpha=0.4)
-
-
-    axs[0].text(0.5, 1.5e-4, r"a) $\overline{N_{\rm{g}}^{\rm{L}}}\leq 10$", fontsize=14, ha='center')
-    axs[1].text(0.7, 1.5e-4, r"b) $\overline{N_{\rm{g}}^{\rm{L}}}=20$", fontsize=14, ha='center')
-    axs[0].set_ylabel(r"Energy Efficiency, $EE$ [computations/J]")
-    axs[0].legend(fontsize=11, loc='lower left', fancybox=False, edgecolor='black')
-
-    #inset
-    axins = axs[1].inset_axes([0.52, 0.33, 0.42, 0.42], xlim = (0.85, 1), ylim=(2e-6,2.7e-6))
-    axins.plot(beta_vals, EE_10traps_no_indep_alpha0, color='yellowgreen')
-    axins.plot(beta_vals, EE_10traps_no_indep_alpha1, color='yellowgreen')
-    axins.plot(beta_vals, EE_10traps_indep, color='darkgreen', linestyle='--')
-    axins.fill_between(beta_vals, EE_10traps_no_indep_alpha0, EE_10traps_no_indep_alpha1, color='yellowgreen', alpha=0.5)
-    axins.tick_params(axis='both', labelsize=8)
-    axins.yaxis.get_offset_text().set_fontsize(8)
-    axs[1].indicate_inset_zoom(axins, edgecolor="black")
-
-    fig.savefig(f"Figures/Trapped_ions/trapped_ions_10_zones_beta.pdf", bbox_inches='tight')
-    plt.close()
 
 
 def plot_gates_per_layer():
@@ -368,25 +258,7 @@ def plot_gates_per_layer():
     plt.close()
 
 
-
-def plot_min_beta():
-    Nz_values = [1, 10]
-    Nz_labels = ['1 gate zone', '10 gate zones']
-    Nz_colors = ['royalblue', 'darkgreen']
-    Ng_values = np.arange(1, 51, 1)
-    for i, Nz in enumerate(Nz_values):
-        beta_values = [min_beta(Ng, Nz) for Ng in Ng_values]
-        plt.plot(Ng_values, beta_values, label=Nz_labels[i], color = Nz_colors[i])
-    plt.xlabel(r"Number of Gate Zones, $N_z$")
-    plt.ylabel(r"Minimum $\beta$")
-    plt.legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
-    plt.xlim(1, 50)
-    plt.ylim(0, 1)
-    plt.show()
-
 if __name__ == "__main__":
     # plot_power_breakdown()
     # plot_D_and_Nsamples()
     plot_gates_per_layer()
-    # plot_min_beta()
-    # plot_beta()

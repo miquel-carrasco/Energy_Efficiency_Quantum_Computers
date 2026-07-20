@@ -155,45 +155,6 @@ def plot_QMIO_power_breakdown():
     plt.close()
 
 
-def plot_D_D0():
-    computer = SolidStateComputer(Nq = Nq, components=components, N_comp=Ni, t_reset=t_reset_active, t_clock=t_2q, t_meas=t_meas, graph_type='Square')
-    D0_values = np.arange(0, 2000, 10)
-    alpha_values = [0, 0.25, 0.5, 0.75, 1]
-    colors = colormaps['summer'](np.linspace(0.2, 0.8, len(alpha_values)))
-    N_samples = 1000
-
-    fig, main_ax = plt.subplots(figsize=(8,6))
-    inset_ax = fig.add_axes([0.58, 0.62, 0.3, 0.25])
-
-    for i, alpha in enumerate(alpha_values):
-        D_values = []
-        EE_values = []
-        for D0 in D0_values:
-            D_values.append(computer.final_circuit_depth(D0 = D0, alpha = alpha))
-            EE_values.append(computer.energy_efficiency(D0 = D0, alpha = alpha, N_samples=N_samples))
-
-        main_ax.plot(D0_values, EE_values, label=f"$\\alpha={alpha}$", color=colors[i])
-        inset_ax.plot(D0_values, D_values, label=f"$\\alpha={alpha}$", color=colors[i])
-
-    main_ax.set_xlabel(r"Initial Circuit Depth, $D_0$")
-    main_ax.set_ylabel(r"Energy Efficiency (computations/J)")
-
-    main_ax.set_yscale('log')
-    main_ax.set_xlim(0, max(D0_values)*1.05)
-    main_ax.set_ylim(1e-6, 1.2e-3)
-    main_ax.text(700, 1.2e-4, r"$\alpha = 0$", fontsize=12)
-    main_ax.text(700, 2.6e-5, r"$\alpha = 0.25$", fontsize=12)
-    main_ax.text(700, 1.2e-5, r"$\alpha = 0.5$", fontsize=12)
-    main_ax.text(700, 6e-6, r"$\alpha = 0.75$", fontsize=12)
-    main_ax.text(700, 2e-6, r"$\alpha = 1$", fontsize=12)
-
-    inset_ax.set_xlabel(r"$D_{0}$", fontsize=13)
-    inset_ax.set_ylabel(r"$D$", fontsize=13)
-
-    plt.savefig("Figures/Superconducting/superconducting_compilation.pdf", bbox_inches='tight')
-    plt.close()
-
-
 def reset_time():
     computer = SolidStateComputer(Nq = Nq, components=components, N_comp=Ni, t_reset=t_reset_active, t_clock=t_2q, t_meas=t_meas, graph_type='Square')
     D_values = np.arange(0, 10100, 50)
@@ -273,23 +234,6 @@ def plot_D_and_Nsamples():
     ax2.set_ylim(3e-6*computer.P*T, 2.5e1*computer.P*T)
     ax2.set_yticklabels([])
 
-    # #QFT
-    # D0=784
-    # alpha = 0.3431
-    # EE_qft = computer.energy_efficiency(D0=D0, alpha=alpha, N_samples=1000)
-    # axs[0].scatter(computer.final_circuit_depth(D0=D0, alpha=alpha), EE_qft, marker='d', color = 'saddlebrown', edgecolors = 'k',linewidth =1, zorder = 10, label = r"QFT ($D=4304, N_{\rm{samples}}=1000$)")
-
-
-    # #Adder
-    # EE_adder = computer.energy_efficiency(D0=962, alpha=0.3514, N_samples=1000)
-    # axs[0].scatter(computer.final_circuit_depth(D0=962, alpha=0.3514), EE_adder, marker='d', color = 'darkorchid', edgecolors = 'k',linewidth =1, zorder = 10, label = r"Adder ($D=5403, N_{\rm{samples}}=100$)")
-
-
-    # #ISING
-    # D_ising = 3 + (2+Nq-1)
-    # EE_ising = computer.energy_efficiency(D0=D_ising, alpha=0, N_samples=1e7)
-    # axs[0].scatter(computer.final_circuit_depth(D0=D_ising, alpha=0), EE_ising, marker='d', color = 'teal', edgecolors = 'k',linewidth =1, zorder = 10, label = r"ISING ($D=104, N_{\rm{samples}}=10^{7}$)")
-
 
     #FIG B)
     N_samples_values = np.arange(0, 10010, 10)
@@ -306,38 +250,17 @@ def plot_D_and_Nsamples():
             if N_samples == 2500 and D0 in D_values:
                 print(f"t_sample={computer.t_comp(D0 = D0, alpha = 0, N_samples = 1)}")
         axs[1].plot(N_samples_values, EE_list, color = colors[i])
-  
-    # axs[1].text(1750, 3e-2, r"$D=10$", fontsize=10, rotation=-6)
-    # axs[1].text(2200, 7e-3, r"$D=100$", fontsize=10, rotation=-6)
+
     axs[1].annotate(r"$D=10$", xy=(2300, 3.3e-3), xytext=(1800, 3e-2), arrowprops=dict(arrowstyle="->"), fontsize=10, rotation=-6)
     axs[1].annotate(r"$D=100$", xy=(3000, 1.4e-3), xytext=(2400, 7e-3), arrowprops=dict(arrowstyle="->"), fontsize=10, rotation=-6)
     axs[1].text(2000, 4.5e-4, r"$D=1000$", fontsize=10, rotation=-6)
     axs[1].text(2000, 5e-5, r"$D=10000$", fontsize=10, rotation=-6)
 
     axs[1].set_xlabel(r"Number of samples, $N_{\mathrm{samples}}$")
-    # axs[1].set_ylabel(r"Energy Efficiency, $EE_{\mathcal{A}}^{\pi}$ [computations/J]")
     axs[1].set_xlim(0, 5010)
     axs[1].set_yscale('log')
-    # axs[1].set_ylim(2.5e-5, 2.7e-2)
 
     axs[1].text(500, 6e0, "(b)", fontsize = 14)
-
-
-    # #QFT
-    # EE_qft = computer.energy_efficiency(D0=784, alpha=0.3431, N_samples=1000)
-    # axs[1].scatter(1000, EE_qft, marker='d', color = 'saddlebrown', edgecolors = 'k',linewidth =1, zorder = 10, label = r"QFT ($D=4304, N_{\rm{samples}}=1000$)")
-
-
-    # #Adder
-    # EE_adder = computer.energy_efficiency(D0=962, alpha=0.3514, N_samples=1000)
-    # axs[1].scatter(1000, EE_adder, marker='d', color = 'darkorchid', edgecolors = 'k',linewidth =1, zorder = 10, label = r"Adder ($D=5403, N_{\rm{samples}}=1000$)")
-
-
-    # #ISING
-    # EE_ising = computer.energy_efficiency(D0=D_ising, alpha=0, N_samples=1e7)
-    # axs[1].scatter(1e7, EE_ising, marker='d', color = 'teal', edgecolors = 'k',linewidth =1, zorder = 10, label = r"ISING ($D=104, N_{\rm{samples}}=10^{7}$)")
-
-    # axs[1].legend(fontsize=10, loc='upper right', fancybox=False, edgecolor='black')
 
 
     ax2 = axs[1].twinx()

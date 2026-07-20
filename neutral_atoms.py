@@ -92,7 +92,6 @@ def plot_D_and_Nsamples():
     ax2.set_ylim(1.5e-10*computer.P*T, 3e-3*computer.P*T)
     ax2.set_yticklabels([])
 
-
     #FIG B)
     N_samples_values = np.arange(0, 10010, 10)
     D_values = [10, 100, 1000, 10000]
@@ -105,16 +104,12 @@ def plot_D_and_Nsamples():
         for N_samples in N_samples_values:
             EE_list.append(computer.energy_efficiency(D0, alpha, beta, N_gates_layer=1, N_samples=N_samples))
             N_pi_list.append(computer.N_pi(t=T, D0=D0, alpha=alpha, beta=beta, N_gates_layer=1, N_samples=N_samples))
-            # if N_samples == 2500 and D0 in D_values:
-                # print(f"t_sample={T/(N_pi_list[-1]*N_samples)}, N_sampl={N_samples}, D={D0}, N_pi={N_pi_list[-1]}, EE={EE_list[-1]}")
         axs[1].plot(N_samples_values, EE_list, color = colors[i], label=f"$D={D0}$")
         axs[1].text(2100, EE_list[-1]*5, rf"$D={D0}$", rotation = -6, fontsize=10)
 
     axs[1].set_xlabel(r"Number of samples, $N_{\mathrm{samples}}$")
-    # axs[1].set_ylabel(r"Energy Efficiency, $EE$ (computations/J)")
     axs[1].set_xlim(0, 5010)
     axs[1].set_yscale('log')
-    # axs[1].set_ylim(2.5e-5, 2.7e-2)
 
     axs[1].text(500, 3e-4, "(b)", fontsize = 14)
 
@@ -125,8 +120,6 @@ def plot_D_and_Nsamples():
     ax2.set_yticks(np.linspace(0.2e6, 1.4e6, 7), labels=[r'$0.2\times10^{6}$', r'$0.4\times10^{6}$', r'$0.6\times10^{6}$', r'$0.8\times10^{6}$', r'$1.0\times10^{6}$', r'$1.2\times10^{6}$', r'$1.4\times10^{6}$'])
     ax2.set_yscale('log')
     ax2.set_ylim(1.5e-10*computer.P*T, 3e-3*computer.P*T)
-
-    # axs[1].legend(fontsize=11, loc='upper right', fancybox=False, edgecolor='black')
 
     plt.subplots_adjust(wspace=0.1)
 
@@ -178,6 +171,7 @@ def plot_power_breakdown():
     ax2.set_ylabel(r"Relative consumption (\%)")
 
     plt.savefig("Figures/Neutral_atoms/neutral_atoms_power_breakdown.pdf")
+
     plt.close()
 
 
@@ -241,17 +235,14 @@ def plot_periodic_vs_continuous_reload():
     ax.set_xlabel(r"Post-compilation Circuit Depth, $D$")
     ax.set_ylabel(r"Energy Efficiency (computations/J)")
     ax.set_yscale('log')
-    # ax.set_xscale('log')
     ax.set_xlim(1, 5550)
-    # ax.set_ylim(5.5e-6, 3.5e-3)
-    # ax.set_title(r"Extra laser trap (1.5 kW)", fontsize=14)
     ax.legend(fontsize=11, fancybox=False, edgecolor='black')
     fig.savefig("Figures/Neutral_atoms/neutral_atoms_periodic_vs_continuous_reload.pdf", bbox_inches='tight')
 
-
+    plt.close()
 
 
 if __name__ == "__main__":
-    # plot_power_breakdown()
+    plot_power_breakdown()
     plot_D_and_Nsamples()
-    # plot_periodic_vs_continuous_reload()
+    plot_periodic_vs_continuous_reload()

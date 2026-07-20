@@ -31,10 +31,9 @@ def ghz_circuit(num_qubits):
 
 
 num_qubits = 100
-# TODO: Need to check all the available gates in Qiskit, this list is from some months ago
 all_gates = ['x', 'y', 'z', 'rx', 'ry', 'rz', 'cx', 'cp', 'cz', 'h', 's', 'sdg', 't', 'tdg', 'u1', 'u2', 'u3', 'swap', 'iswap', 'measure']
 
-# TODO: Need to define which basis gate sets to use (one or two per platforms?)
+
 basis_gates = [
     ['cx', 'h', 'rx', 'z', 's'],
     ['ecr', 'h', 'rx', 'z', 's'],
