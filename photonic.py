@@ -1,6 +1,7 @@
 from qcenergy.components import Component
 from qcenergy.platforms import PhotonicComputer, Computer
 
+
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import LogNorm
@@ -26,8 +27,8 @@ t_source = 1/r_source
 eta_source =0.712
 eta_det = 0.98
 eta_dmx = 0.83
-eta_coup = 0.0035
-eta_mzi = 0.057
+eta_coup = 0.5
+eta_mzi = 0.1
 
 N_photon = 12
 D_optical = 2*N_photon
@@ -73,7 +74,6 @@ components = [pulse_tube, laser, chip, demultiplex, fpga, server]
 Ni = [N_pt, N_laser, N_chip, N_dplx, N_fpga, N_server]
 P_per_component = [comp.P*Ni[i] for i, comp in enumerate(components)]
 
-
 computer2 = PhotonicComputer(Nq = N_photon,
                     components = components,
                     N_comp = Ni,
@@ -112,7 +112,7 @@ computer3 = PhotonicComputer(Nq = N_photon,
                     eta_coup = eta_coup,
                     eta_mzi = eta_mzi)
 
-N_photon = 96
+N_photon = 36
 D_optical = 2*N_photon
 
 pulse_tube , N_pt = Component('Pulse Tube', 1500, 'Cooling'), math.ceil(2*N_photon/25)
@@ -140,7 +140,7 @@ computer4 = PhotonicComputer(Nq = N_photon,
                     eta_mzi = eta_mzi)
 
 
-N_photon = 24
+N_photon = 12
 D_optical = 2*N_photon
 eta_coup_EOLN = 3.4
 eta_mzi_EOLN = 0.15
@@ -211,10 +211,10 @@ def plot_EE_vs_Nsamp(list_comp):
 
         ax1.plot(N_values, EE_list, color = colors[i])
         i=i+1
-        ax1.text(4000, EE_list[-1]*2.5, rf"$N_{{photon}}={comp.Nq}$", rotation = -6, fontsize=10)
+        ax1.text(4000, EE_list[-1]*50, rf"$N_{{q}}={comp.Nq}$", rotation = 0, fontsize=10)
 
-    ax1.set_xlabel(r"$N_{{sample}}$")
-    ax1.set_ylabel(r"Energy efficiency")
+    ax1.set_xlabel(r"Number of samples, $N_{\rm{samples}}$")
+    ax1.set_ylabel(r"Energy Efficiency (computations/J)")
     ax1.set_xlim(0, max(N_values))
     ax1.set_yscale('log')
 
@@ -256,11 +256,11 @@ def plot_power_breakdown(computer: Computer):
 
     ax.set_xticks(ticks)
     ax.set_xticklabels(list(power_types.keys()))
-    ax.set_ylim(0, max(power_types.values())*1.2)
+    ax.set_ylim(0, max(power_types.values())*1.25)
     ax.set_ylabel(r"Power consumption ($W$)")
 
     ax2 = ax.twinx()
-    ax2.set_ylim(0, max(power_types.values())/computer.P*100*1.2)
+    ax2.set_ylim(0, max(power_types.values())/computer.P*100*1.25)
     ax2.set_ylabel(r"Relative consumption (\%)")
 
     plt.savefig("Figures/Photonic/photonic_power_breakdown.pdf")
@@ -271,7 +271,7 @@ def plot_power_breakdown(computer: Computer):
 def plot_EE_vs_comp(list_comp):
 
     N_values = np.arange(1, 10010, 10)
-    comp_names = ["Glass mesh", "EO-LN", "EO-BTO"]
+    comp_names = ["Glass mesh", "EO-BTO","EO-LN"]
 
     fig, ax1 = plt.subplots()
     colors = colormaps['Reds'](np.linspace(0.3, 0.8, len(list_comp)))
@@ -283,11 +283,11 @@ def plot_EE_vs_comp(list_comp):
             EE_list.append(comp.energy_efficiency(N_samples =N, N_photon= comp.Nq, N_source =1))
 
         ax1.plot(N_values, EE_list, color = colors[i])
-        ax1.text(4000, EE_list[-1]*2.5, comp_names[i], rotation = -6, fontsize=10)
+        ax1.text(4000, EE_list[-1]*2.5, comp_names[i], rotation = -3, fontsize=10)
         i=i+1
 
-    ax1.set_xlabel(r"$N_{{sample}}$")
-    ax1.set_ylabel(r"Energy efficiency")
+    ax1.set_xlabel(r"Number of samples, $N_{\rm{samples}}$")
+    ax1.set_ylabel(r"Energy Efficiency (computations/J)")
     ax1.set_xlim(0, max(N_values))
     ax1.set_yscale('log')
 
@@ -337,7 +337,7 @@ def plot_EE_vs_Nphoton(N_samples):
             EE_list.append(computer.energy_efficiency(N_samples =N, N_photon= computer.Nq, N_source =1))
 
         ax1.plot(photon, EE_list, color = colors[j])
-        # ax1.text(48, EE_list[-1]*2.5, rf"$N_{{samples}}={N}$", rotation = -6, fontsize=10)
+        ax1.text(4000, EE_list[-1]*2.5, rf"$N_{{samples}}={N}$", rotation = -6, fontsize=10)
 
     ax1.set_xlabel(r"$N_{{photon}}$")
     ax1.set_ylabel(r"Energy efficiency")
@@ -350,7 +350,7 @@ def plot_EE_vs_Nphoton(N_samples):
 
 
 if __name__ == "__main__":
-    #plot_EE_vs_Nsamp([computer1,computer2,computer3,computer4])
-    plot_EE_vs_comp([computer2,computerEOLN,computerEOBTO])
-    #plot_power_breakdown(computer2)
-    # plot_EE_vs_Nphoton([100,10000,100000000000])
+    #plot_EE_vs_Nsamp([computer1,computer2,computer4])
+    #plot_EE_vs_comp([computer1,computerEOBTO,computerEOLN])
+    plot_power_breakdown(computer1)
+    #plot_EE_vs_Nphoton([100,10000,100000000000])
